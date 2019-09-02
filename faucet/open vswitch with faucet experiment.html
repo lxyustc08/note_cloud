@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+        <title>Route路由实验</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/katex.min.css" integrity="sha384-yFRtMMDnQtDRO8rLpMIKrtPCD5jdktao2TV19YiZYWMDkUR5GQZR/NOVTdquEx1j" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+        <link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        
+        <script src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+    </head>
+    <body>
+        <h1 id="route%e8%b7%af%e7%94%b1%e5%ae%9e%e9%aa%8c">Route路由实验</h1>
+<h2 id="%e4%bf%ae%e6%94%b9faucet%e9%85%8d%e7%bd%ae">修改faucet配置</h2>
+<ol>
+<li><em>编辑~/workspace/dockeretc/faucet/faucet.yaml</em></li>
+</ol>
+<pre><code class="language-yaml"><div><span class="hljs-attr">dps:</span>
+<span class="hljs-attr">    switch-1:</span>
+<span class="hljs-attr">        dp_id:</span> <span class="hljs-number">0x1</span>
+<span class="hljs-attr">        timeout:</span> <span class="hljs-number">3600</span>
+<span class="hljs-attr">        arp_neighbor_timeout:</span> <span class="hljs-number">3600</span>
+<span class="hljs-attr">        interfaces:</span>
+            <span class="hljs-number">1</span><span class="hljs-string">:</span>
+<span class="hljs-attr">                native_vlan:</span> <span class="hljs-number">100</span>
+            <span class="hljs-number">2</span><span class="hljs-string">:</span>
+<span class="hljs-attr">                native_vlan:</span> <span class="hljs-number">100</span>
+            <span class="hljs-number">3</span><span class="hljs-string">:</span>
+<span class="hljs-attr">                native_vlan:</span> <span class="hljs-number">100</span>
+            <span class="hljs-number">4</span><span class="hljs-string">:</span>
+<span class="hljs-attr">                native_vlan:</span> <span class="hljs-number">200</span>
+            <span class="hljs-number">5</span><span class="hljs-string">:</span>
+<span class="hljs-attr">                native_vlan:</span> <span class="hljs-number">200</span>
+<span class="hljs-attr">vlans:</span>
+    <span class="hljs-number">100</span><span class="hljs-string">:</span>
+<span class="hljs-attr">        faucet_vips:</span> <span class="hljs-string">["10.100.0.254/24"]</span>
+    <span class="hljs-number">200</span><span class="hljs-string">:</span>
+<span class="hljs-attr">        faucet_vips:</span> <span class="hljs-string">["10.200.0.254/24"]</span>
+<span class="hljs-attr">routers:</span>
+<span class="hljs-attr">    router-1:</span>
+<span class="hljs-attr">        vlans:</span> <span class="hljs-string">[100,</span> <span class="hljs-number">200</span><span class="hljs-string">]</span>
+</div></code></pre>
+<ol start="2">
+<li><em>重启faucet容器</em></li>
+</ol>
+<pre><code class="language-bash"><div>docker restart faucet
+</div></code></pre>
+<ol start="3">
+<li><em>通过查看faucet日志确认此时faucet table设置</em></li>
+</ol>
+<pre><code class="language-bash"><div>lxyustc@lxyustc-TM1701:~/WorkSpace/dockeretc/faucet$ cat faucet.log
+Aug 30 09:14:10 faucet.valve INFO     DPID 1 (0x1) switch-1 table ID 0 table config match_types: ((<span class="hljs-string">'eth_dst'</span>, True), (<span class="hljs-string">'eth_type'</span>, False), (<span class="hljs-string">'in_port'</span>, False), (<span class="hljs-string">'vlan_vid'</span>, False)) name: vlan next_tables: [<span class="hljs-string">'eth_src'</span>] output: True set_fields: (<span class="hljs-string">'vlan_vid'</span>,) size: 32 vlan_port_scale: 1.5
+Aug 30 09:14:10 faucet.valve INFO     DPID 1 (0x1) switch-1 table ID 1 table config match_types: ((<span class="hljs-string">'eth_dst'</span>, True), (<span class="hljs-string">'eth_src'</span>, False), (<span class="hljs-string">'eth_type'</span>, False), (<span class="hljs-string">'in_port'</span>, False), (<span class="hljs-string">'vlan_vid'</span>, False)) miss_goto: eth_dst name: eth_src next_tables: [<span class="hljs-string">'ipv4_fib'</span>, <span class="hljs-string">'vip'</span>, <span class="hljs-string">'eth_dst'</span>, <span class="hljs-string">'flood'</span>] output: True set_fields: (<span class="hljs-string">'vlan_vid'</span>, <span class="hljs-string">'eth_dst'</span>) size: 32 table_id: 1 vlan_port_scale: 4.1
+Aug 30 09:14:10 faucet.valve INFO     DPID 1 (0x1) switch-1 table ID 2 table config dec_ttl: True match_types: ((<span class="hljs-string">'eth_type'</span>, False), (<span class="hljs-string">'ipv4_dst'</span>, True), (<span class="hljs-string">'vlan_vid'</span>, False)) name: ipv4_fib next_tables: [<span class="hljs-string">'vip'</span>, <span class="hljs-string">'eth_dst'</span>, <span class="hljs-string">'flood'</span>] output: True set_fields: (<span class="hljs-string">'eth_dst'</span>, <span class="hljs-string">'eth_src'</span>, <span class="hljs-string">'vlan_vid'</span>) size: 32 table_id: 2 vlan_port_scale: 3.1
+Aug 30 09:14:10 faucet.valve INFO     DPID 1 (0x1) switch-1 table ID 3 table config match_types: ((<span class="hljs-string">'arp_tpa'</span>, False), (<span class="hljs-string">'eth_dst'</span>, False), (<span class="hljs-string">'eth_type'</span>, False), (<span class="hljs-string">'icmpv6_type'</span>, False), (<span class="hljs-string">'ip_proto'</span>, False)) name: vip next_tables: [<span class="hljs-string">'eth_dst'</span>, <span class="hljs-string">'flood'</span>] output: True size: 32 table_id: 3
+Aug 30 09:14:10 faucet.valve INFO     DPID 1 (0x1) switch-1 table ID 4 table config exact_match: True match_types: ((<span class="hljs-string">'eth_dst'</span>, False), (<span class="hljs-string">'vlan_vid'</span>, False)) miss_goto: flood name: eth_dst output: True size: 41 table_id: 4 vlan_port_scale: 4.1
+Aug 30 09:14:10 faucet.valve INFO     DPID 1 (0x1) switch-1 table ID 5 table config match_types: ((<span class="hljs-string">'eth_dst'</span>, True), (<span class="hljs-string">'in_port'</span>, False), (<span class="hljs-string">'vlan_vid'</span>, False)) name: flood output: True size: 32 table_id: 5 vlan_port_scale: 2.1
+</div></code></pre>
+<p style="text-indent:2em">table id及其对应表名称table name</p>
+<table>
+    <tr>
+        <th>Table ID（表ID）</th>
+        <th>Table Name（表名称）</th>
+        <th>match_fields(匹配域)</th>
+    </tr>
+    <tr>
+        <td>0</th>
+        <td>VLAN</td>
+        <td>eth_dst,eth_type,in_port,vlan_id</td>
+    </tr>
+    <tr>
+        <td>1</td>
+        <td>ETH_SRC</td>
+        <td>eth_dst,eth_src,eth_type,in_port,vlan_id</td>
+    </tr>
+    <tr>
+        <td>2</td>
+        <td>IPV4_FIB</td>
+        <td>eth_type,piv4_dst,vlan_id</td>
+    </tr>
+    <tr>
+        <td>3</td>
+        <td>VIP</td>
+        <td>arp_tpa,eth_dst,eth_type,icmpv6,ip_proto</td>
+    </tr>
+    <tr>
+        <td>4</td>
+        <td>ETH_DST</td>
+        <td>eth_dst,vlan_id</td>
+    </tr>
+    <tr>
+        <td>5</td>
+        <td>FLOOD</td>
+        <td>eth_dst,in_port,vlan_id</td>
+    </tr>
+</table>
+<h2 id="%e6%9f%a5%e7%9c%8b%e6%ad%a4%e6%97%b6%e6%b5%81%e8%a1%a8">查看此时流表</h2>
+<pre><code class="language-bash"><div>root@node1-debian9:~<span class="hljs-comment"># ./dumps-flows br1  </span>
+</div></code></pre>
+<p><img src="file:////home/lxyustc/WorkSpace/note_local/faucet/%E6%B7%BB%E5%8A%A0ip%E9%87%8D%E5%90%AFfaucet%E5%90%8E%E7%9A%84%E6%B5%81%E8%A1%A8.png" alt="Alt text" title="修改faucet配置后的流表"><br>
+流表内容如下</p>
+<pre><code class="language-bash"><div>priority=9000,in_port=p1,vlan_tci=0x0000/0x1fff actions=push_vlan:0x8100,set_field:4196-&gt;vlan_vid,goto_table:1
+priority=9000,in_port=p2,vlan_tci=0x0000/0x1fff actions=push_vlan:0x8100,set_field:4196-&gt;vlan_vid,goto_table:1
+priority=9000,in_port=p3,vlan_tci=0x0000/0x1fff actions=push_vlan:0x8100,set_field:4196-&gt;vlan_vid,goto_table:1
+priority=9000,in_port=p4,vlan_tci=0x0000/0x1fff actions=push_vlan:0x8100,set_field:4296-&gt;vlan_vid,goto_table:1
+priority=9000,in_port=p5,vlan_tci=0x0000/0x1fff actions=push_vlan:0x8100,set_field:4296-&gt;vlan_vid,goto_table:1
+priority=0 actions=drop
+table=1, priority=20490,dl_type=0x9000 actions=drop
+table=1, priority=20480,dl_src=ff:ff:ff:ff:ff:ff actions=drop
+table=1, priority=20480,dl_src=0e:00:00:00:00:01 actions=drop
+table=1, priority=16384,arp,dl_vlan=100 actions=goto_table:3
+table=1, priority=16384,arp,dl_vlan=200 actions=goto_table:3
+table=1, priority=16384,ip,dl_vlan=100,dl_dst=0e:00:00:00:00:01 actions=goto_table:2
+table=1, priority=16384,ip,dl_vlan=200,dl_dst=0e:00:00:00:00:01 actions=goto_table:2
+table=1, priority=4096,dl_vlan=100 actions=CONTROLLER:96,goto_table:4
+table=1, priority=4096,dl_vlan=200 actions=CONTROLLER:96,goto_table:4
+table=1, priority=0 actions=goto_table:4
+table=2, priority=12320,ip,dl_vlan=100,nw_dst=10.100.0.254 actions=goto_table:3
+table=2, priority=12320,ip,dl_vlan=200,nw_dst=10.200.0.254 actions=goto_table:3
+table=2, priority=12312,ip,dl_vlan=200,nw_dst=10.100.0.0/24 actions=goto_table:3
+table=2, priority=12312,ip,dl_vlan=100,nw_dst=10.100.0.0/24 actions=goto_table:3
+table=2, priority=12312,ip,dl_vlan=200,nw_dst=10.200.0.0/24 actions=goto_table:3
+table=2, priority=12312,ip,dl_vlan=100,nw_dst=10.200.0.0/24 actions=goto_table:3
+table=2, priority=0 actions=drop
+table=3, priority=12320,arp,dl_dst=ff:ff:ff:ff:ff:ff,arp_tpa=10.100.0.254 actions=CONTROLLER:64
+table=3, priority=12320,arp,dl_dst=ff:ff:ff:ff:ff:ff,arp_tpa=10.200.0.254 actions=CONTROLLER:64
+table=3, priority=12320,arp,dl_dst=0e:00:00:00:00:01 actions=CONTROLLER:64
+table=3, priority=12317,ip,dl_dst=0e:00:00:00:00:01 actions=CONTROLLER:110
+table=3, priority=12319,arp actions=goto_table:4
+table=3, priority=12316,ip actions=CONTROLLER:110,goto_table:4
+table=3, priority=12319,icmp,dl_dst=0e:00:00:00:00:01 actions=CONTROLLER:110
+table=3, priority=12318,icmp actions=CONTROLLER:110,goto_table:4
+table=3, priority=0 actions=drop
+table=4, priority=0 actions=goto_table:5
+table=5, priority=8240,dl_dst=01:00:0c:cc:cc:cc actions=drop
+table=5, priority=8240,dl_dst=01:00:0c:cc:cc:<span class="hljs-built_in">cd</span> actions=drop
+table=5, priority=8240,dl_vlan=100,dl_dst=ff:ff:ff:ff:ff:ff actions=pop_vlan,output:p1,output:p2,output:p3
+table=5, priority=8240,dl_vlan=200,dl_dst=ff:ff:ff:ff:ff:ff actions=pop_vlan,output:p4,output:p5
+table=5, priority=8236,dl_dst=01:80:c2:00:00:00/ff:ff:ff:ff:ff:f0 actions=drop
+table=5, priority=8216,dl_vlan=100,dl_dst=01:80:c2:00:00:00/ff:ff:ff:00:00:00 actions=pop_vlan,output:p1,output:p2,output:p3
+table=5, priority=8216,dl_vlan=100,dl_dst=01:00:5e:00:00:00/ff:ff:ff:00:00:00 actions=pop_vlan,output:p1,output:p2,output:p3
+table=5, priority=8216,dl_vlan=200,dl_dst=01:80:c2:00:00:00/ff:ff:ff:00:00:00 actions=pop_vlan,output:p4,output:p5
+table=5, priority=8216,dl_vlan=200,dl_dst=01:00:5e:00:00:00/ff:ff:ff:00:00:00 actions=pop_vlan,output:p4,output:p5
+table=5, priority=8208,dl_vlan=100,dl_dst=33:33:00:00:00:00/ff:ff:00:00:00:00 actions=pop_vlan,output:p1,output:p2,output:p3
+table=5, priority=8208,dl_vlan=200,dl_dst=33:33:00:00:00:00/ff:ff:00:00:00:00 actions=pop_vlan,output:p4,output:p5
+table=5, priority=8192,dl_vlan=100 actions=pop_vlan,output:p1,output:p2,output:p3
+table=5, priority=8192,dl_vlan=200 actions=pop_vlan,output:p4,output:p5
+table=5, priority=0 actions=drop
+</div></code></pre>
+<p>可以发现增加了arp协议相关内容如：</p>
+<pre><code class="language-bash"><div>table=1, priority=16384,arp,dl_vlan=100 actions=goto_table:3
+table=1, priority=16384,arp,dl_vlan=200 actions=goto_table:3
+table=3, priority=12320,arp,dl_dst=ff:ff:ff:ff:ff:ff,arp_tpa=10.100.0.254 actions=CONTROLLER:64
+table=3, priority=12320,arp,dl_dst=ff:ff:ff:ff:ff:ff,arp_tpa=10.200.0.254 actions=CONTROLLER:64
+table=3, priority=12320,arp,dl_dst=0e:00:00:00:00:01 actions=CONTROLLER:64
+table=3, priority=12319,arp actions=goto_table:4
+</div></code></pre>
+<p>此外增加了ip协议相关内容</p>
+<pre><code class="language-bash"><div>table=1, priority=16384,ip,dl_vlan=100,dl_dst=0e:00:00:00:00:01 actions=goto_table:2
+table=1, priority=16384,ip,dl_vlan=200,dl_dst=0e:00:00:00:00:01 actions=goto_table:2
+table=2, priority=12320,ip,dl_vlan=100,nw_dst=10.100.0.254 actions=goto_table:3
+table=2, priority=12320,ip,dl_vlan=200,nw_dst=10.200.0.254 actions=goto_table:3
+table=2, priority=12312,ip,dl_vlan=200,nw_dst=10.100.0.0/24 actions=goto_table:3
+table=2, priority=12312,ip,dl_vlan=100,nw_dst=10.100.0.0/24 actions=goto_table:3
+table=2, priority=12312,ip,dl_vlan=200,nw_dst=10.200.0.0/24 actions=goto_table:3
+table=2, priority=12312,ip,dl_vlan=100,nw_dst=10.200.0.0/24 actions=goto_table:3
+table=3, priority=12317,ip,dl_dst=0e:00:00:00:00:01 actions=CONTROLLER:110
+table=3, priority=12316,ip actions=CONTROLLER:110,goto_table:4
+</div></code></pre>
+<p>还有icmp协议相关内容</p>
+<pre><code class="language-bash"><div>table=3, priority=12319,icmp,dl_dst=0e:00:00:00:00:01 actions=CONTROLLER:110
+table=3, priority=12318,icmp actions=CONTROLLER:110,goto_table:4
+</div></code></pre>
+
+    </body>
+    </html>

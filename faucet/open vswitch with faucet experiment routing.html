@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>open vswitch with faucet experiment routing.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: "Segoe WPC", "Segoe UI", "SFUIText-Light", "HelveticaNeue-Light", sans-serif, "Droid Sans Fallback";
+	font-size: 14px;
+	padding: 0 12px;
+	line-height: 22px;
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	color: #4080D0;
+	text-decoration: none;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+h1 code,
+h2 code,
+h3 code,
+h4 code,
+h5 code,
+h6 code {
+	font-size: inherit;
+	line-height: auto;
+}
+
+a:hover {
+	color: #4080D0;
+	text-decoration: underline;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left: 5px solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 14px;
+	line-height: 19px;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+.mac code {
+	font-size: 12px;
+	line-height: 18px;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+/** Theming */
+
+.vscode-light,
+.vscode-light pre code {
+	color: rgb(30, 30, 30);
+}
+
+.vscode-dark,
+.vscode-dark pre code {
+	color: #DDD;
+}
+
+.vscode-high-contrast,
+.vscode-high-contrast pre code {
+	color: white;
+}
+
+.vscode-light code {
+	color: #A31515;
+}
+
+.vscode-dark code {
+	color: #D7BA7D;
+}
+
+.vscode-light pre:not(.hljs),
+.vscode-light code > div {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre:not(.hljs),
+.vscode-dark code > div {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre:not(.hljs),
+.vscode-high-contrast code > div {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+.vscode-light blockquote,
+.vscode-dark blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.vscode-high-contrast blockquote {
+	background: transparent;
+	border-color: #fff;
+}
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family:  "Meiryo", "Segoe WPC", "Segoe UI", "SFUIText-Light", "HelveticaNeue-Light", sans-serif, "Droid Sans Fallback";
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+</head>
+<body>
+<h1 id="route%E8%B7%AF%E7%94%B1%E5%AE%9E%E9%AA%8C">Route路由实验</h1>
+<h2 id="%E4%BF%AE%E6%94%B9faucet%E9%85%8D%E7%BD%AE">修改faucet配置</h2>
+<ol>
+<li><em>编辑~/workspace/dockeretc/faucet/faucet.yaml</em></li>
+</ol>
+<pre class="hljs"><code><div><span class="hljs-attr">dps:</span>
+<span class="hljs-attr">    switch-1:</span>
+<span class="hljs-attr">        dp_id:</span> <span class="hljs-number">0x1</span>
+<span class="hljs-attr">        timeout:</span> <span class="hljs-number">3600</span>
+<span class="hljs-attr">        arp_neighbor_timeout:</span> <span class="hljs-number">3600</span>
+<span class="hljs-attr">        interfaces:</span>
+            <span class="hljs-number">1</span><span class="hljs-string">:</span>
+<span class="hljs-attr">                native_vlan:</span> <span class="hljs-number">100</span>
+            <span class="hljs-number">2</span><span class="hljs-string">:</span>
+<span class="hljs-attr">                native_vlan:</span> <span class="hljs-number">100</span>
+            <span class="hljs-number">3</span><span class="hljs-string">:</span>
+<span class="hljs-attr">                native_vlan:</span> <span class="hljs-number">100</span>
+            <span class="hljs-number">4</span><span class="hljs-string">:</span>
+<span class="hljs-attr">                native_vlan:</span> <span class="hljs-number">200</span>
+            <span class="hljs-number">5</span><span class="hljs-string">:</span>
+<span class="hljs-attr">                native_vlan:</span> <span class="hljs-number">200</span>
+<span class="hljs-attr">vlans:</span>
+    <span class="hljs-number">100</span><span class="hljs-string">:</span>
+<span class="hljs-attr">        faucet_vips:</span> <span class="hljs-string">["10.100.0.254/24"]</span>
+    <span class="hljs-number">200</span><span class="hljs-string">:</span>
+<span class="hljs-attr">        faucet_vips:</span> <span class="hljs-string">["10.200.0.254/24"]</span>
+<span class="hljs-attr">routers:</span>
+<span class="hljs-attr">    router-1:</span>
+<span class="hljs-attr">        vlans:</span> <span class="hljs-string">[100,</span> <span class="hljs-number">200</span><span class="hljs-string">]</span>
+</div></code></pre>
+<ol start="2">
+<li><em>重启faucet容器</em></li>
+</ol>
+<pre class="hljs"><code><div>docker restart faucet
+</div></code></pre>
+<ol start="3">
+<li><em>通过查看faucet日志确认此时faucet table设置</em></li>
+</ol>
+<pre class="hljs"><code><div>lxyustc@lxyustc-TM1701:~/WorkSpace/dockeretc/faucet$ cat faucet.log
+Aug 30 09:14:10 faucet.valve INFO     DPID 1 (0x1) switch-1 table ID 0 table config match_types: ((<span class="hljs-string">'eth_dst'</span>, True), (<span class="hljs-string">'eth_type'</span>, False), (<span class="hljs-string">'in_port'</span>, False), (<span class="hljs-string">'vlan_vid'</span>, False)) name: vlan next_tables: [<span class="hljs-string">'eth_src'</span>] output: True set_fields: (<span class="hljs-string">'vlan_vid'</span>,) size: 32 vlan_port_scale: 1.5
+Aug 30 09:14:10 faucet.valve INFO     DPID 1 (0x1) switch-1 table ID 1 table config match_types: ((<span class="hljs-string">'eth_dst'</span>, True), (<span class="hljs-string">'eth_src'</span>, False), (<span class="hljs-string">'eth_type'</span>, False), (<span class="hljs-string">'in_port'</span>, False), (<span class="hljs-string">'vlan_vid'</span>, False)) miss_goto: eth_dst name: eth_src next_tables: [<span class="hljs-string">'ipv4_fib'</span>, <span class="hljs-string">'vip'</span>, <span class="hljs-string">'eth_dst'</span>, <span class="hljs-string">'flood'</span>] output: True set_fields: (<span class="hljs-string">'vlan_vid'</span>, <span class="hljs-string">'eth_dst'</span>) size: 32 table_id: 1 vlan_port_scale: 4.1
+Aug 30 09:14:10 faucet.valve INFO     DPID 1 (0x1) switch-1 table ID 2 table config dec_ttl: True match_types: ((<span class="hljs-string">'eth_type'</span>, False), (<span class="hljs-string">'ipv4_dst'</span>, True), (<span class="hljs-string">'vlan_vid'</span>, False)) name: ipv4_fib next_tables: [<span class="hljs-string">'vip'</span>, <span class="hljs-string">'eth_dst'</span>, <span class="hljs-string">'flood'</span>] output: True set_fields: (<span class="hljs-string">'eth_dst'</span>, <span class="hljs-string">'eth_src'</span>, <span class="hljs-string">'vlan_vid'</span>) size: 32 table_id: 2 vlan_port_scale: 3.1
+Aug 30 09:14:10 faucet.valve INFO     DPID 1 (0x1) switch-1 table ID 3 table config match_types: ((<span class="hljs-string">'arp_tpa'</span>, False), (<span class="hljs-string">'eth_dst'</span>, False), (<span class="hljs-string">'eth_type'</span>, False), (<span class="hljs-string">'icmpv6_type'</span>, False), (<span class="hljs-string">'ip_proto'</span>, False)) name: vip next_tables: [<span class="hljs-string">'eth_dst'</span>, <span class="hljs-string">'flood'</span>] output: True size: 32 table_id: 3
+Aug 30 09:14:10 faucet.valve INFO     DPID 1 (0x1) switch-1 table ID 4 table config exact_match: True match_types: ((<span class="hljs-string">'eth_dst'</span>, False), (<span class="hljs-string">'vlan_vid'</span>, False)) miss_goto: flood name: eth_dst output: True size: 41 table_id: 4 vlan_port_scale: 4.1
+Aug 30 09:14:10 faucet.valve INFO     DPID 1 (0x1) switch-1 table ID 5 table config match_types: ((<span class="hljs-string">'eth_dst'</span>, True), (<span class="hljs-string">'in_port'</span>, False), (<span class="hljs-string">'vlan_vid'</span>, False)) name: flood output: True size: 32 table_id: 5 vlan_port_scale: 2.1
+</div></code></pre>
+<p style="text-indent:2em">table id及其对应表名称table name</p>
+<table>
+    <tr>
+        <th>Table ID（表ID）</th>
+        <th>Table Name（表名称）</th>
+        <th>match_fields(匹配域)</th>
+    </tr>
+    <tr>
+        <td>0</th>
+        <td>VLAN</td>
+        <td>eth_dst,eth_type,in_port,vlan_id</td>
+    </tr>
+    <tr>
+        <td>1</td>
+        <td>ETH_SRC</td>
+        <td>eth_dst,eth_src,eth_type,in_port,vlan_id</td>
+    </tr>
+    <tr>
+        <td>2</td>
+        <td>IPV4_FIB</td>
+        <td>eth_type,piv4_dst,vlan_id</td>
+    </tr>
+    <tr>
+        <td>3</td>
+        <td>VIP</td>
+        <td>arp_tpa,eth_dst,eth_type,icmpv6,ip_proto</td>
+    </tr>
+    <tr>
+        <td>4</td>
+        <td>ETH_DST</td>
+        <td>eth_dst,vlan_id</td>
+    </tr>
+    <tr>
+        <td>5</td>
+        <td>FLOOD</td>
+        <td>eth_dst,in_port,vlan_id</td>
+    </tr>
+</table>
+<h2 id="%E6%9F%A5%E7%9C%8B%E6%AD%A4%E6%97%B6%E6%B5%81%E8%A1%A8">查看此时流表</h2>
+<pre class="hljs"><code><div><span class="hljs-comment"># ./dumps-flows br1  </span>
+</div></code></pre>
+<p><img src="添加ip重启faucet后的流表.png" alt="Alt text" title="修改faucet配置后的流表"><br>
+流表内容如下</p>
+<pre class="hljs"><code><div>priority=9000,in_port=p1,vlan_tci=0x0000/0x1fff actions=push_vlan:0x8100,set_field:4196-&gt;vlan_vid,goto_table:1
+priority=9000,in_port=p2,vlan_tci=0x0000/0x1fff actions=push_vlan:0x8100,set_field:4196-&gt;vlan_vid,goto_table:1
+priority=9000,in_port=p3,vlan_tci=0x0000/0x1fff actions=push_vlan:0x8100,set_field:4196-&gt;vlan_vid,goto_table:1
+priority=9000,in_port=p4,vlan_tci=0x0000/0x1fff actions=push_vlan:0x8100,set_field:4296-&gt;vlan_vid,goto_table:1
+priority=9000,in_port=p5,vlan_tci=0x0000/0x1fff actions=push_vlan:0x8100,set_field:4296-&gt;vlan_vid,goto_table:1
+priority=0 actions=drop
+table=1, priority=20490,dl_type=0x9000 actions=drop
+table=1, priority=20480,dl_src=ff:ff:ff:ff:ff:ff actions=drop
+table=1, priority=20480,dl_src=0e:00:00:00:00:01 actions=drop
+table=1, priority=16384,arp,dl_vlan=100 actions=goto_table:3
+table=1, priority=16384,arp,dl_vlan=200 actions=goto_table:3
+table=1, priority=16384,ip,dl_vlan=100,dl_dst=0e:00:00:00:00:01 actions=goto_table:2
+table=1, priority=16384,ip,dl_vlan=200,dl_dst=0e:00:00:00:00:01 actions=goto_table:2
+table=1, priority=4096,dl_vlan=100 actions=CONTROLLER:96,goto_table:4
+table=1, priority=4096,dl_vlan=200 actions=CONTROLLER:96,goto_table:4
+table=1, priority=0 actions=goto_table:4
+table=2, priority=12320,ip,dl_vlan=100,nw_dst=10.100.0.254 actions=goto_table:3
+table=2, priority=12320,ip,dl_vlan=200,nw_dst=10.200.0.254 actions=goto_table:3
+table=2, priority=12312,ip,dl_vlan=200,nw_dst=10.100.0.0/24 actions=goto_table:3
+table=2, priority=12312,ip,dl_vlan=100,nw_dst=10.100.0.0/24 actions=goto_table:3
+table=2, priority=12312,ip,dl_vlan=200,nw_dst=10.200.0.0/24 actions=goto_table:3
+table=2, priority=12312,ip,dl_vlan=100,nw_dst=10.200.0.0/24 actions=goto_table:3
+table=2, priority=0 actions=drop
+table=3, priority=12320,arp,dl_dst=ff:ff:ff:ff:ff:ff,arp_tpa=10.100.0.254 actions=CONTROLLER:64
+table=3, priority=12320,arp,dl_dst=ff:ff:ff:ff:ff:ff,arp_tpa=10.200.0.254 actions=CONTROLLER:64
+table=3, priority=12320,arp,dl_dst=0e:00:00:00:00:01 actions=CONTROLLER:64
+table=3, priority=12317,ip,dl_dst=0e:00:00:00:00:01 actions=CONTROLLER:110
+table=3, priority=12319,arp actions=goto_table:4
+table=3, priority=12316,ip actions=CONTROLLER:110,goto_table:4
+table=3, priority=12319,icmp,dl_dst=0e:00:00:00:00:01 actions=CONTROLLER:110
+table=3, priority=12318,icmp actions=CONTROLLER:110,goto_table:4
+table=3, priority=0 actions=drop
+table=4, priority=0 actions=goto_table:5
+table=5, priority=8240,dl_dst=01:00:0c:cc:cc:cc actions=drop
+table=5, priority=8240,dl_dst=01:00:0c:cc:cc:<span class="hljs-built_in">cd</span> actions=drop
+table=5, priority=8240,dl_vlan=100,dl_dst=ff:ff:ff:ff:ff:ff actions=pop_vlan,output:p1,output:p2,output:p3
+table=5, priority=8240,dl_vlan=200,dl_dst=ff:ff:ff:ff:ff:ff actions=pop_vlan,output:p4,output:p5
+table=5, priority=8236,dl_dst=01:80:c2:00:00:00/ff:ff:ff:ff:ff:f0 actions=drop
+table=5, priority=8216,dl_vlan=100,dl_dst=01:80:c2:00:00:00/ff:ff:ff:00:00:00 actions=pop_vlan,output:p1,output:p2,output:p3
+table=5, priority=8216,dl_vlan=100,dl_dst=01:00:5e:00:00:00/ff:ff:ff:00:00:00 actions=pop_vlan,output:p1,output:p2,output:p3
+table=5, priority=8216,dl_vlan=200,dl_dst=01:80:c2:00:00:00/ff:ff:ff:00:00:00 actions=pop_vlan,output:p4,output:p5
+table=5, priority=8216,dl_vlan=200,dl_dst=01:00:5e:00:00:00/ff:ff:ff:00:00:00 actions=pop_vlan,output:p4,output:p5
+table=5, priority=8208,dl_vlan=100,dl_dst=33:33:00:00:00:00/ff:ff:00:00:00:00 actions=pop_vlan,output:p1,output:p2,output:p3
+table=5, priority=8208,dl_vlan=200,dl_dst=33:33:00:00:00:00/ff:ff:00:00:00:00 actions=pop_vlan,output:p4,output:p5
+table=5, priority=8192,dl_vlan=100 actions=pop_vlan,output:p1,output:p2,output:p3
+table=5, priority=8192,dl_vlan=200 actions=pop_vlan,output:p4,output:p5
+table=5, priority=0 actions=drop
+</div></code></pre>
+<p>可以发现增加了arp协议相关内容如：</p>
+<pre class="hljs"><code><div>table=1, priority=16384,arp,dl_vlan=100 actions=goto_table:3
+table=1, priority=16384,arp,dl_vlan=200 actions=goto_table:3
+table=3, priority=12320,arp,dl_dst=ff:ff:ff:ff:ff:ff,arp_tpa=10.100.0.254 actions=CONTROLLER:64
+table=3, priority=12320,arp,dl_dst=ff:ff:ff:ff:ff:ff,arp_tpa=10.200.0.254 actions=CONTROLLER:64
+table=3, priority=12320,arp,dl_dst=0e:00:00:00:00:01 actions=CONTROLLER:64
+table=3, priority=12319,arp actions=goto_table:4
+</div></code></pre>
+<p>此外增加了ip协议相关内容</p>
+<pre class="hljs"><code><div>table=1, priority=16384,ip,dl_vlan=100,dl_dst=0e:00:00:00:00:01 actions=goto_table:2
+table=1, priority=16384,ip,dl_vlan=200,dl_dst=0e:00:00:00:00:01 actions=goto_table:2
+table=2, priority=12320,ip,dl_vlan=100,nw_dst=10.100.0.254 actions=goto_table:3
+table=2, priority=12320,ip,dl_vlan=200,nw_dst=10.200.0.254 actions=goto_table:3
+table=2, priority=12312,ip,dl_vlan=200,nw_dst=10.100.0.0/24 actions=goto_table:3
+table=2, priority=12312,ip,dl_vlan=100,nw_dst=10.100.0.0/24 actions=goto_table:3
+table=2, priority=12312,ip,dl_vlan=200,nw_dst=10.200.0.0/24 actions=goto_table:3
+table=2, priority=12312,ip,dl_vlan=100,nw_dst=10.200.0.0/24 actions=goto_table:3
+table=3, priority=12317,ip,dl_dst=0e:00:00:00:00:01 actions=CONTROLLER:110
+table=3, priority=12316,ip actions=CONTROLLER:110,goto_table:4
+</div></code></pre>
+<p>还有icmp协议相关内容</p>
+<pre class="hljs"><code><div>table=3, priority=12319,icmp,dl_dst=0e:00:00:00:00:01 actions=CONTROLLER:110
+table=3, priority=12318,icmp actions=CONTROLLER:110,goto_table:4
+</div></code></pre>
+<h2 id="tracing%E8%B7%9F%E8%B8%AA%E6%95%B0%E6%8D%AE%E5%8C%85">Tracing跟踪数据包</h2>
+<ul>
+<li><strong>实验条件</strong>
+<ul>
+<li>p1上连接一台假定IP为10.100.0.1的假想机器A；</li>
+<li>A发送数据至假定IP为10.200.0.1的假想机器B；</li>
+<li>B连接至端口p2上；</li>
+<li>A与B之间未发生过通信；</li>
+</ul>
+</li>
+</ul>
+<p>在实验条件下从A发送数据至B，一般而言会经历如下几步：</p>
+<ol>
+<li><em>主机A 10.100.0.1发送ARP数据包至网关10.100.0.254；</em></li>
+<li><em>路由发送arp响应给主机A 10.100.0.1；</em></li>
+<li><em>主机A 10.100.0.1发送IP数据包至主机B 10.200.0.1,通过路由的Ethernet address；</em></li>
+<li><em>路由广播ARP数据包至端口p4,p5；</em></li>
+<li><em>主机B 10.200.0.1发送ARP响应至路由；</em></li>
+<li><em>要么路由向主机B 10.200.0.1发送IP数据包，要么由于包过期10.100.0.1重新发送数据包。</em></li>
+</ol>
+<p>按照上述步骤，通过ofproto/trace应用跟踪数据包全流程。跟踪之前保存流表：</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># ./save-flows br1 &gt; saveflows2</span>
+</div></code></pre>
+<h3 id="step1%E4%B8%BB%E6%9C%BA%E5%90%91router%E5%8F%91%E9%80%81arp%E6%95%B0%E6%8D%AE%E5%8C%85">Step1.主机向router发送ARP数据包</h3>
+<pre class="hljs"><code><div><span class="hljs-comment"># ovs-appctl ofproto/trace br1 in_port=p1,dl_src=00:01:02:03:04:05,dl_dst=ff:ff:ff:ff:ff:ff,dl_type=0x806,arp_spa=10.100.0.1,arp_tpa=10.100.0.254,arp_sha=00:01:02:03:04:05,arp_tha=ff:ff:ff:ff:ff:ff,arp_op=1 -generate</span>
+</div></code></pre>
+<p>输出如下</p>
+<pre class="hljs"><code><div>Flow: arp,in_port=1,vlan_tci=0x0000,dl_src=00:01:02:03:04:05,dl_dst=ff:ff:ff:ff:ff:ff,arp_spa=10.100.0.1,arp_tpa=10.100.0.254,arp_op=1,arp_sha=00:01:02:03:04:05,arp_tha=ff:ff:ff:ff:ff:ff
+
+bridge(<span class="hljs-string">"br1"</span>)
+-------------
+ 0. in_port=1,vlan_tci=0x0000/0x1fff, priority 9000, cookie 0x5adc15c0
+    push_vlan:0x8100
+    set_field:4196-&gt;vlan_vid
+    goto_table:1
+ 1. arp,dl_vlan=100, priority 16384, cookie 0x5adc15c0
+    goto_table:3
+ 3. arp,dl_dst=ff:ff:ff:ff:ff:ff,arp_tpa=10.100.0.254, priority 12320, cookie 0x5adc15c0
+    CONTROLLER:64
+
+Final flow: arp,in_port=1,dl_vlan=100,dl_vlan_pcp=0,vlan_tci1=0x0000,dl_src=00:01:02:03:04:05,dl_dst=ff:ff:ff:ff:ff:ff,arp_spa=10.100.0.1,arp_tpa=10.100.0.254,arp_op=1,arp_sha=00:01:02:03:04:05,arp_tha=ff:ff:ff:ff:ff:ff
+Megaflow: recirc_id=0,eth,arp,in_port=1,vlan_tci=0x0000/0x1fff,dl_src=00:01:02:03:04:05,dl_dst=ff:ff:ff:ff:ff:ff,arp_spa=10.100.0.1,arp_tpa=10.100.0.254,arp_op=1
+Datapath actions: push_vlan(vid=100,pcp=0),userspace(pid=3627324943,controller(reason=1,dont_send=0,continuation=0,recirc_id=1,rule_cookie=0x5adc15c0,controller_id=0,max_len=64))
+
+</div></code></pre>
+<p>查看faucet日志</p>
+<pre class="hljs"><code><div>$ cat faucet.log
+Sep 02 01:10:42 faucet.valve INFO     DPID 1 (0x1) switch-1 L2 learned 00:01:02:03:04:05 (L2 type 0x0806, L2 dst ff:ff:ff:ff:ff:ff, L3 src 10.100.0.1, L3 dst 10.100.0.254) Port 1 VLAN 100 (1 hosts total)
+Sep 02 01:10:42 faucet.valve INFO     DPID 1 (0x1) switch-1 Adding new route 10.100.0.1/32 via 10.100.0.1 (00:01:02:03:04:05) on VLAN 100
+Sep 02 01:10:42 faucet.valve INFO     DPID 1 (0x1) switch-1 Resolve response to 10.100.0.254 from 00:01:02:03:04:05 (L2 type 0x0806, L2 dst ff:ff:ff:ff:ff:ff, L3 src 10.100.0.1, L3 dst 10.100.0.254) Port 1 VLAN 100
+</div></code></pre>
+<p>从faucet日志中可以看到，本次模拟数据包跟踪后，faucet进行了3件事：</p>
+<ol>
+<li><em>学习了port1的mac地址；</em></li>
+<li><em>添加了路由规则，并学习了port1上的主机A的mac地址与IP地址的对应关系；</em></li>
+<li><em>响应ARP请求。</em></li>
+</ol>
+<p>对比命令运行前后的流表</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># ./diff-flows saveflows2 br1</span>
++table=1 priority=8191,in_port=1,dl_vlan=100,dl_src=00:01:02:03:04:05 hard_timeout=7134 actions=goto_table:4
++table=2 priority=12320,ip,dl_vlan=100,nw_dst=10.100.0.1 actions=set_field:4196-&gt;vlan_vid,set_field:0e:00:00:00:00:01-&gt;eth_src,set_field:00:01:02:03:04:05-&gt;eth_dst,dec_ttl,goto_table:4
++table=2 priority=12320,ip,dl_vlan=200,nw_dst=10.100.0.1 actions=set_field:4196-&gt;vlan_vid,set_field:0e:00:00:00:00:01-&gt;eth_src,set_field:00:01:02:03:04:05-&gt;eth_dst,dec_ttl,goto_table:4
++table=4 priority=8192,dl_vlan=100,dl_dst=00:01:02:03:04:05 idle_timeout=10739 actions=pop_vlan,output:1
+</div></code></pre>
+<p>运行该命令后流表变化如下：</p>
+<ol>
+<li>
+<p>Table 1，也即ETH_SRC table中增加规则</p>
+<blockquote>
+<p><em>in_port=1,dl_vlan=100,dl_src=00:01:02:03:04:05 hard_timeout=7134 actions=goto_table:4</em></p>
+</blockquote>
+</li>
+<li>
+<p>Table 2，也即IPV4_FIB table中增加规则</p>
+<blockquote>
+<p><em>priority=12320,ip,dl_vlan=100,nw_dst=10.100.0.1 actions=set_field:4196-&gt;vlan_vid,set_field:0e:00:00:00:00:01-&gt;eth_src,set_field:00:01:02:03:04:05-&gt;eth_dst,dec_ttl,goto_table:4</em>
+<em>priority=12320,ip,dl_vlan=200,nw_dst=10.100.0.1 actions=set_field:4196-&gt;vlan_vid,set_field:0e:00:00:00:00:01-&gt;eth_src,set_field:00:01:02:03:04:05-&gt;eth_dst,dec_ttl,goto_table:4</em></p>
+</blockquote>
+<p>上述两条规则对匹配所有目的IP为10.100.0.1的数据包，包括两个VLAN（VLAN 100与VLAN 200），将数据包的vid值设置为4196（即vlan id 100），同时设置数据包的源mac地址与目的mac地址，并减少ttl值。</p>
+<blockquote>
+<p><em>注：</em><br>
+<em>0e:00:00:00:00:01应该为faucet设置的vip 10.100.0.254的mac地址</em></p>
+</blockquote>
+</li>
+<li>
+<p>Table 4，也即ETH_DST table中增加规则</p>
+<blockquote>
+<p><em>priority=8192,dl_vlan=100,dl_dst=00:01:02:03:04:05 idle_timeout=10739 actions=pop_vlan,output:1</em></p>
+</blockquote>
+<p>添加目的mac为00:01:02:03:04:05的数据包转发至port1规则。</p>
+</li>
+</ol>
+<h3 id="step2-router-sends-arp-reply">Step2. Router Sends ARP Reply</h3>
+<p>通常而言，路由发送的ARP回复在默认情况下会被丢弃,如流表规则展示的那样</p>
+<pre class="hljs"><code><div>table=1, priority=20480,dl_src=0e:00:00:00:00:01 actions=drop
+</div></code></pre>
+<p>需通过包捕获配合tcpdump来获取ARP回复消息信息；</p>
+<blockquote>
+<p><em>注：后续步骤在ovs-sandbox中进行</em></p>
+<ul>
+<li><input type="checkbox" id="checkbox0"><label for="checkbox0"></label><em>可能与ovn相关，需要进一步确认</em></li>
+</ul>
+</blockquote>
+<p>设置各个port捕获文件</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># for i in `seq 1 5`; do ovs-vsctl set interface p${i} options:pcap=p${i}.pcap; done</span>
+</div></code></pre>
+<p>对于p1，重新运行主机发送ARP数据包命令</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># ovs-appctl ofproto/trace br1 in_port=p1,dl_src=00:01:02:03:04:05,dl_dst=ff:ff:ff:ff:ff:ff,dl_type=0x806,arp_spa=10.100.0.1,arp_tpa=10.100.0.254,arp_sha=00:01:02:03:04:05,arp_tha=ff:ff:ff:ff:ff:ff,arp_op=1 -generate</span>
+</div></code></pre>
+<p>在sandbox文件下出现p1的捕获文件p1.pcap，使用tcpdump查看捕获文件p1.pcap</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># tcpdump -evvvr sandbox/p1.pcap</span>
+reading from file sandbox/p1.pcap, link-type EN10MB (Ethernet)
+15:27:47.170997 0e:00:00:00:00:01 (oui Unknown) &gt; 00:01:02:03:04:05 (oui Unknown), ethertype ARP (0x0806), length 60: Ethernet (len 6), IPv4 (len 4), Reply 10.100.0.254 is-at 0e:00:00:00:00:01 (oui Unknown), length 46
+</div></code></pre>
+<h3 id="step3-host-sends-ip-packets-%E4%B8%BB%E6%9C%BA%E5%8F%91%E9%80%81ip%E5%8C%85">Step3. Host Sends IP Packets 主机发送IP包</h3>
+<p>通过step2，主机A获取了路由Router的mac地址，现在主机A可以通过路由Router的mac地址发送IP数据包了<br>
+输入命令</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># ovs-appctl ofproto/trace br1 in_port=p1,dl_src=00:01:02:03:04:05,dl_dst=0e:00:00:00:00:01,udp,nw_src=10.100.0.1,nw_dst=10.200.0.1,nw_ttl=64 -generate</span>
+</div></code></pre>
+<p>输出如下</p>
+<pre class="hljs"><code><div>Flow: udp,in_port=1,vlan_tci=0x0000,dl_src=00:01:02:03:04:05,dl_dst=0e:00:00:00:00:01,nw_src=10.100.0.1,nw_dst=10.200.0.1,nw_tos=0,nw_ecn=0,nw_ttl=64,tp_src=0,tp_dst=0
+
+bridge(<span class="hljs-string">"br1"</span>)
+-------------
+ 0. in_port=1,vlan_tci=0x0000/0x1fff, priority 9000, cookie 0x5adc15c0
+    push_vlan:0x8100
+    set_field:4196-&gt;vlan_vid
+    goto_table:1
+ 1. ip,dl_vlan=100,dl_dst=0e:00:00:00:00:01, priority 16384, cookie 0x5adc15c0
+    goto_table:2
+ 2. ip,dl_vlan=100,nw_dst=10.200.0.0/24, priority 12312, cookie 0x5adc15c0
+    goto_table:3
+ 3. ip,dl_dst=0e:00:00:00:00:01, priority 12317, cookie 0x5adc15c0
+    CONTROLLER:110
+
+Final flow: udp,in_port=1,dl_vlan=100,dl_vlan_pcp=0,vlan_tci1=0x0000,dl_src=00:01:02:03:04:05,dl_dst=0e:00:00:00:00:01,nw_src=10.100.0.1,nw_dst=10.200.0.1,nw_tos=0,nw_ecn=0,nw_ttl=64,tp_src=0,tp_dst=0
+Megaflow: recirc_id=0,eth,udp,in_port=1,vlan_tci=0x0000/0x1fff,dl_src=00:01:02:03:04:05,dl_dst=0e:00:00:00:00:01,nw_src=0.0.0.0/1,nw_dst=10.200.0.0/25,nw_frag=no
+Datapath actions: push_vlan(vid=100,pcp=0),userspace(pid=0,controller(reason=1,dont_send=0,continuation=0,recirc_id=3,rule_cookie=0x5adc15c0,controller_id=0,max_len=110))
+</div></code></pre>
+<p>在上述输出的第2步中通过Router mac地址发送IP包至网络10.200.0.0/24中；<br>
+在第3步中，由于目前不知道10.200.0.1的mac地址，因此需要将数据包上传给controller控制器。此时faucet也不知10.200.0.1对应的mac地址，此时faucet.log信息如下：</p>
+<pre class="hljs"><code><div>Sep 02 07:47:10 faucet.valve INFO     DPID 1 (0x1) switch-1 resolving 10.200.0.1 (1 flows) on VLAN 200
+Sep 02 07:47:16 faucet.valve INFO     DPID 1 (0x1) switch-1 resolving 10.200.0.1 retry 2 (last attempt was 5s ago; 1 flows) on VLAN 200
+Sep 02 07:47:23 faucet.valve INFO     DPID 1 (0x1) switch-1 resolving 10.200.0.1 retry 3 (last attempt was 6s ago; 1 flows) on VLAN 200
+</div></code></pre>
+<p>表明faucet当前在向ovs请求10.200.0.1的ARP消息</p>
+<h3 id="step4-router-broadcasts-arp-request-%E8%B7%AF%E7%94%B1%E5%B9%BF%E6%92%ADarp%E5%9C%B0%E5%9D%80">Step4. Router Broadcasts ARP Request 路由广播ARP地址</h3>
+<p>查看p4, p5的捕获文件p4.pcap及p5.pcap，可发现路由广播ARP</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># tcpdump -evvvr sandbox/p4.pcap</span>
+reading from file sandbox/p4.pcap, link-type EN10MB (Ethernet)
+15:47:10.916508 0e:00:00:00:00:01 (oui Unknown) &gt; Broadcast, ethertype ARP (0x0806), length 60: Ethernet (len 6), IPv4 (len 4), Request who-has 10.200.0.1 tell 10.200.0.254, length 46
+15:47:16.818857 0e:00:00:00:00:01 (oui Unknown) &gt; Broadcast, ethertype ARP (0x0806), length 60: Ethernet (len 6), IPv4 (len 4), Request who-has 10.200.0.1 tell 10.200.0.254, length 46
+15:47:23.240731 0e:00:00:00:00:01 (oui Unknown) &gt; Broadcast, ethertype ARP (0x0806), length 60: Ethernet (len 6), IPv4 (len 4), Request who-has 10.200.0.1 tell 10.200.0.254, length 46
+15:47:35.767759 0e:00:00:00:00:01 (oui Unknown) &gt; Broadcast, ethertype ARP (0x0806), length 60: Ethernet (len 6), IPv4 (len 4), Request who-has 10.200.0.1 tell 10.200.0.254, length 46
+15:47:59.257626 0e:00:00:00:00:01 (oui Unknown) &gt; Broadcast, ethertype ARP (0x0806), length 60: Ethernet (len 6), IPv4 (len 4), Request who-has 10.200.0.1 tell 10.200.0.254, length 46
+<span class="hljs-comment"># tcpdump -evvvr sandbox/p5.pcap</span>
+15:47:10.916610 0e:00:00:00:00:01 (oui Unknown) &gt; Broadcast, ethertype ARP (0x0806), length 60: Ethernet (len 6), IPv4 (len 4), Request who-has 10.200.0.1 tell 10.200.0.254, length 46
+15:47:16.818880 0e:00:00:00:00:01 (oui Unknown) &gt; Broadcast, ethertype ARP (0x0806), length 60: Ethernet (len 6), IPv4 (len 4), Request who-has 10.200.0.1 tell 10.200.0.254, length 46
+15:47:23.240756 0e:00:00:00:00:01 (oui Unknown) &gt; Broadcast, ethertype ARP (0x0806), length 60: Ethernet (len 6), IPv4 (len 4), Request who-has 10.200.0.1 tell 10.200.0.254, length 46
+15:47:35.767796 0e:00:00:00:00:01 (oui Unknown) &gt; Broadcast, ethertype ARP (0x0806), length 60: Ethernet (len 6), IPv4 (len 4), Request who-has 10.200.0.1 tell 10.200.0.254, length 46
+15:47:59.257684 0e:00:00:00:00:01 (oui Unknown) &gt; Broadcast, ethertype ARP (0x0806), length 60: Ethernet (len 6), IPv4 (len 4), Request who-has 10.200.0.1 tell 10.200.0.254, length 46
+</div></code></pre>
+<p>查看p3的捕获文件p3.pcap，可发现p3并未收到ARP广播</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># tcpdump -evvvr sandbox/p3.pcap</span>
+reading from file sandbox/p3.pcap, link-type EN10MB (Ethernet)
+</div></code></pre>
+<h3 id="step5-host-b-sends-arp-reply-%E4%B8%BB%E6%9C%BAb%E5%8F%91%E9%80%81arp%E5%9B%9E%E5%A4%8D">Step5. Host B Sends ARP reply 主机B发送ARP回复</h3>
+<p>主机B向faucet controller发送ARP reply<br>
+输入命令如下：</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># ovs-appctl ofproto/trace br1 in_port=p4,dl_src=00:10:20:30:40:50,dl_dst=0e:00:00:00:00:01,dl_type=0x806,arp_spa=10.200.0.1,arp_tpa=10.200.0.254,arp_sha=00:10:20:30:40:50,arp_tha=0e:00:00:00:00:01,arp_op=2 -generate</span>
+</div></code></pre>
+<p>命令运行结果如下：</p>
+<pre class="hljs"><code><div>Flow: arp,in_port=4,vlan_tci=0x0000,dl_src=00:10:20:30:40:50,dl_dst=0e:00:00:00:00:01,arp_spa=10.200.0.1,arp_tpa=10.200.0.254,arp_op=2,arp_sha=00:10:20:30:40:50,arp_tha=0e:00:00:00:00:01
+
+bridge(<span class="hljs-string">"br1"</span>)
+-------------
+ 0. in_port=4,vlan_tci=0x0000/0x1fff, priority 9000, cookie 0x5adc15c0
+    push_vlan:0x8100
+    set_field:4296-&gt;vlan_vid
+    goto_table:1
+ 1. arp,dl_vlan=200, priority 16384, cookie 0x5adc15c0
+    goto_table:3
+ 3. arp,dl_dst=0e:00:00:00:00:01, priority 12320, cookie 0x5adc15c0
+    CONTROLLER:64
+
+Final flow: arp,in_port=4,dl_vlan=200,dl_vlan_pcp=0,vlan_tci1=0x0000,dl_src=00:10:20:30:40:50,dl_dst=0e:00:00:00:00:01,arp_spa=10.200.0.1,arp_tpa=10.200.0.254,arp_op=2,arp_sha=00:10:20:30:40:50,arp_tha=0e:00:00:00:00:01
+Megaflow: recirc_id=0,eth,arp,in_port=4,vlan_tci=0x0000/0x1fff,dl_src=00:10:20:30:40:50,dl_dst=0e:00:00:00:00:01,arp_spa=10.200.0.1,arp_tpa=10.200.0.254,arp_op=2
+Datapath actions: push_vlan(vid=200,pcp=0),userspace(pid=0,controller(reason=1,dont_send=0,continuation=0,recirc_id=6,rule_cookie=0x5adc15c0,controller_id=0,max_len=64))
+</div></code></pre>
+<p>此时faucet.log信息如下</p>
+<pre class="hljs"><code><div>Sep 02 08:29:05 faucet.valve INFO     DPID 1 (0x1) switch-1 L2 learned 00:10:20:30:40:50 (L2 <span class="hljs-built_in">type</span> 0x0806, L2 dst 0e:00:00:00:00:01, L3 src 10.200.0.1, L3 dst 10.200.0.254) Port 4 VLAN 200 (1 hosts total)
+</div></code></pre>
+<p>可发现faucet确实在p2端口上学习了10.200.0.1与00:10:20:30:40:50的对应关系</p>
+<p>再次输入下述指令</p>
+<pre class="hljs"><code><div>ovs-appctl ofproto/trace br1 in_port=p1,dl_src=00:01:02:03:04:05,dl_dst=0e:00:00:00:00:01,udp,nw_src=10.100.0.1,nw_dst=10.200.0.1,nw_ttl=64 -generate
+</div></code></pre>
+<p>运行结果如下</p>
+<pre class="hljs"><code><div>Flow: udp,in_port=1,vlan_tci=0x0000,dl_src=00:01:02:03:04:05,dl_dst=0e:00:00:00:00:01,nw_src=10.100.0.1,nw_dst=10.200.0.1,nw_tos=0,nw_ecn=0,nw_ttl=64,tp_src=0,tp_dst=0
+
+bridge(<span class="hljs-string">"br1"</span>)
+-------------
+ 0. in_port=1,vlan_tci=0x0000/0x1fff, priority 9000, cookie 0x5adc15c0
+    push_vlan:0x8100
+    set_field:4196-&gt;vlan_vid
+    goto_table:1
+ 1. ip,dl_vlan=100,dl_dst=0e:00:00:00:00:01, priority 16384, cookie 0x5adc15c0
+    goto_table:2
+ 2. ip,dl_vlan=100,nw_dst=10.200.0.0/24, priority 12312, cookie 0x5adc15c0
+    goto_table:3
+ 3. ip,dl_dst=0e:00:00:00:00:01, priority 12317, cookie 0x5adc15c0
+    CONTROLLER:110
+
+Final flow: udp,in_port=1,dl_vlan=100,dl_vlan_pcp=0,vlan_tci1=0x0000,dl_src=00:01:02:03:04:05,dl_dst=0e:00:00:00:00:01,nw_src=10.100.0.1,nw_dst=10.200.0.1,nw_tos=0,nw_ecn=0,nw_ttl=64,tp_src=0,tp_dst=0
+Megaflow: recirc_id=0,eth,udp,in_port=1,vlan_tci=0x0000/0x1fff,dl_src=00:01:02:03:04:05,dl_dst=0e:00:00:00:00:01,nw_src=0.0.0.0/1,nw_dst=10.200.0.0/25,nw_frag=no
+Datapath actions: push_vlan(vid=100,pcp=0),userspace(pid=0,controller(reason=1,dont_send=0,continuation=0,recirc_id=8,rule_cookie=0x5adc15c0,controller_id=0,max_len=110))
+</div></code></pre>
+<p>此时faucet.log日志如下：</p>
+<pre class="hljs"><code><div>Sep 02 08:39:21 faucet.valve INFO     DPID 1 (0x1) switch-1 Adding new route 10.200.0.1/32 via 10.200.0.1 (00:10:20:30:40:50) on VLAN 200
+Sep 02 08:39:21 faucet.valve INFO     DPID 1 (0x1) switch-1 resolving 10.200.0.1 (1 flows) on VLAN 200
+</div></code></pre>
+<p>可以发现faucet已添加10.200.0.1的解析记录，查看此时流表并与原始流表比对</p>
+<pre class="hljs"><code><div>. /root/diff-flows ~/saveflows2 br1
++table=1 priority=8191,in_port=4,dl_vlan=200,dl_src=00:10:20:30:40:50 hard_timeout=7184 actions=goto_table:4
++table=1 priority=8191,in_port=1,dl_vlan=100,dl_src=00:01:02:03:04:05 hard_timeout=7134 actions=goto_table:4
++table=2 priority=12320,ip,dl_vlan=100,nw_dst=10.100.0.1 actions=set_field:4196-&gt;vlan_vid,set_field:0e:00:00:00:00:01-&gt;eth_src,set_field:00:01:02:03:04:05-&gt;eth_dst,dec_ttl,goto_table:4
++table=2 priority=12320,ip,dl_vlan=200,nw_dst=10.100.0.1 actions=set_field:4196-&gt;vlan_vid,set_field:0e:00:00:00:00:01-&gt;eth_src,set_field:00:01:02:03:04:05-&gt;eth_dst,dec_ttl,goto_table:4
++table=2 priority=12320,ip,dl_vlan=200,nw_dst=10.200.0.1 actions=set_field:4296-&gt;vlan_vid,set_field:0e:00:00:00:00:01-&gt;eth_src,set_field:00:10:20:30:40:50-&gt;eth_dst,dec_ttl,goto_table:4
++table=2 priority=12320,ip,dl_vlan=100,nw_dst=10.200.0.1 actions=set_field:4296-&gt;vlan_vid,set_field:0e:00:00:00:00:01-&gt;eth_src,set_field:00:10:20:30:40:50-&gt;eth_dst,dec_ttl,goto_table:4
++table=4 priority=8192,dl_vlan=100,dl_dst=00:01:02:03:04:05 idle_timeout=10739 actions=pop_vlan,output:1
++table=4 priority=8192,dl_vlan=200,dl_dst=00:10:20:30:40:50 idle_timeout=10789 actions=pop_vlan,output:4
+</div></code></pre>
+<h3 id="step-6-ip-packet-delivery-ip%E6%95%B0%E6%8D%AE%E5%8C%85%E4%BC%A0%E9%80%92">Step 6. IP Packet Delivery IP数据包传递</h3>
+<p>在第6步实验时有两种情况：</p>
+<ol>
+<li>Faucet 路由缓存触发ARP解析的IP数据包，这样，此时缓存的IP数据包直接发送至目的地，可通过tcpdump与捕获的包缓存来确认。<br>
+输入命令<pre class="hljs"><code><div>tcpdump -evvvr sandbox/p4.pcap ip
+</div></code></pre>
+输出如下<pre class="hljs"><code><div>reading from file sandbox/p4.pcap, link-type EN10MB (Ethernet)
+</div></code></pre>
+说明此时不时情况1，Faucet路由并未缓存触发ARP解析的IP数据包；</li>
+<li>重新发送IP数据包，完成IP数据包传输过程。<br>
+输入命令<pre class="hljs"><code><div>ovs-appctl ofproto/trace br1 in_port=p1,dl_src=00:01:02:03:04:05,dl_dst=0e:00:00:00:00:01,udp,nw_src=10.100.0.1,nw_dst=10.200.0.1,nw_ttl=64 -generate
+</div></code></pre>
+输出如下<pre class="hljs"><code><div>Flow: udp,in_port=1,vlan_tci=0x0000,dl_src=00:01:02:03:04:05,dl_dst=0e:00:00:00:00:01,nw_src=10.100.0.1,nw_dst=10.200.0.1,nw_tos=0,nw_ecn=0,nw_ttl=64,tp_src=0,tp_dst=0
+
+bridge(<span class="hljs-string">"br1"</span>)
+-------------
+ 1. in_port=1,vlan_tci=0x0000/0x1fff, priority 9000, cookie 0x5adc15c0
+    push_vlan:0x8100
+    set_field:4196-&gt;vlan_vid
+    goto_table:1
+ 2. ip,dl_vlan=100,dl_dst=0e:00:00:00:00:01, priority 16384, cookie 0x5adc15c0
+    goto_table:2
+ 3. ip,dl_vlan=100,nw_dst=10.200.0.1, priority 12320, cookie 0x5adc15c0
+    set_field:4296-&gt;vlan_vid
+    set_field:0e:00:00:00:00:01-&gt;eth_src
+    set_field:00:10:20:30:40:50-&gt;eth_dst
+    dec_ttl
+    goto_table:4
+ 4. dl_vlan=200,dl_dst=00:10:20:30:40:50, priority 8192, cookie 0x5adc15c0
+    pop_vlan
+    output:4
+
+Final flow: udp,in_port=1,vlan_tci=0x0000,dl_src=0e:00:00:00:00:01,dl_dst=00:10:20:30:40:50,nw_src=10.100.0.1,nw_dst=10.200.0.1,nw_tos=0,nw_ecn=0,nw_ttl=63,tp_src=0,tp_dst=0
+Megaflow: recirc_id=0,eth,ip,in_port=1,vlan_tci=0x0000/0x1fff,dl_src=00:01:02:03:04:05,dl_dst=0e:00:00:00:00:01,nw_src=0.0.0.0/1,nw_dst=10.200.0.1,nw_ttl=64,nw_frag=no
+Datapath actions: <span class="hljs-built_in">set</span>(eth(src=0e:00:00:00:00:01,dst=00:10:20:30:40:50)),<span class="hljs-built_in">set</span>(ipv4(ttl=63)),4
+</div></code></pre>
+通过输出可知，IP 数据包正常完成数据传输</li>
+</ol>
+
+</body>
+</html>
