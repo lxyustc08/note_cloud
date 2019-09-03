@@ -29,11 +29,11 @@ routers:
 ```
 
 2. *重启faucet容器*  
-```bash
+```terminal
 docker restart faucet
 ```  
 3. *通过查看faucet日志确认此时faucet table设置*  
-```bash
+```terminal
 lxyustc@lxyustc-TM1701:~/WorkSpace/dockeretc/faucet$ cat faucet.log
 Aug 30 09:14:10 faucet.valve INFO     DPID 1 (0x1) switch-1 table ID 0 table config match_types: (('eth_dst', True), ('eth_type', False), ('in_port', False), ('vlan_vid', False)) name: vlan next_tables: ['eth_src'] output: True set_fields: ('vlan_vid',) size: 32 vlan_port_scale: 1.5
 Aug 30 09:14:10 faucet.valve INFO     DPID 1 (0x1) switch-1 table ID 1 table config match_types: (('eth_dst', True), ('eth_src', False), ('eth_type', False), ('in_port', False), ('vlan_vid', False)) miss_goto: eth_dst name: eth_src next_tables: ['ipv4_fib', 'vip', 'eth_dst', 'flood'] output: True set_fields: ('vlan_vid', 'eth_dst') size: 32 table_id: 1 vlan_port_scale: 4.1
@@ -82,13 +82,13 @@ Aug 30 09:14:10 faucet.valve INFO     DPID 1 (0x1) switch-1 table ID 5 table con
 </table>
 
 ## 查看此时流表
-```bash
+```terminal
 # ./dumps-flows br1  
 ```  
 
 ![Alt text](添加ip重启faucet后的流表.png "修改faucet配置后的流表")  
 流表内容如下
-```bash
+```terminal
 priority=9000,in_port=p1,vlan_tci=0x0000/0x1fff actions=push_vlan:0x8100,set_field:4196->vlan_vid,goto_table:1
 priority=9000,in_port=p2,vlan_tci=0x0000/0x1fff actions=push_vlan:0x8100,set_field:4196->vlan_vid,goto_table:1
 priority=9000,in_port=p3,vlan_tci=0x0000/0x1fff actions=push_vlan:0x8100,set_field:4196->vlan_vid,goto_table:1
@@ -138,7 +138,7 @@ table=5, priority=8192,dl_vlan=200 actions=pop_vlan,output:p4,output:p5
 table=5, priority=0 actions=drop
 ```  
 可以发现增加了arp协议相关内容如：  
-```bash
+```terminal
 table=1, priority=16384,arp,dl_vlan=100 actions=goto_table:3
 table=1, priority=16384,arp,dl_vlan=200 actions=goto_table:3
 table=3, priority=12320,arp,dl_dst=ff:ff:ff:ff:ff:ff,arp_tpa=10.100.0.254 actions=CONTROLLER:64
@@ -147,7 +147,7 @@ table=3, priority=12320,arp,dl_dst=0e:00:00:00:00:01 actions=CONTROLLER:64
 table=3, priority=12319,arp actions=goto_table:4
 ```  
 此外增加了ip协议相关内容
-```bash
+```terminal
 table=1, priority=16384,ip,dl_vlan=100,dl_dst=0e:00:00:00:00:01 actions=goto_table:2
 table=1, priority=16384,ip,dl_vlan=200,dl_dst=0e:00:00:00:00:01 actions=goto_table:2
 table=2, priority=12320,ip,dl_vlan=100,nw_dst=10.100.0.254 actions=goto_table:3
@@ -160,7 +160,7 @@ table=3, priority=12317,ip,dl_dst=0e:00:00:00:00:01 actions=CONTROLLER:110
 table=3, priority=12316,ip actions=CONTROLLER:110,goto_table:4
 ```  
 还有icmp协议相关内容
-```bash
+```terminal
 table=3, priority=12319,icmp,dl_dst=0e:00:00:00:00:01 actions=CONTROLLER:110
 table=3, priority=12318,icmp actions=CONTROLLER:110,goto_table:4
 ```
@@ -180,16 +180,16 @@ table=3, priority=12318,icmp actions=CONTROLLER:110,goto_table:4
 6. *要么路由向主机B 10.200.0.1发送IP数据包，要么由于包过期10.100.0.1重新发送数据包。*  
    
 按照上述步骤，通过ofproto/trace应用跟踪数据包全流程。跟踪之前保存流表：
-```bash
+```terminal
 # ./save-flows br1 > saveflows2
 ```
 
 ### Step1.主机向router发送ARP数据包
-```bash
+```terminal
 # ovs-appctl ofproto/trace br1 in_port=p1,dl_src=00:01:02:03:04:05,dl_dst=ff:ff:ff:ff:ff:ff,dl_type=0x806,arp_spa=10.100.0.1,arp_tpa=10.100.0.254,arp_sha=00:01:02:03:04:05,arp_tha=ff:ff:ff:ff:ff:ff,arp_op=1 -generate
 ```
 输出如下
-```bash
+```terminal
 Flow: arp,in_port=1,vlan_tci=0x0000,dl_src=00:01:02:03:04:05,dl_dst=ff:ff:ff:ff:ff:ff,arp_spa=10.100.0.1,arp_tpa=10.100.0.254,arp_op=1,arp_sha=00:01:02:03:04:05,arp_tha=ff:ff:ff:ff:ff:ff
 
 bridge("br1")
@@ -221,7 +221,7 @@ Sep 02 01:10:42 faucet.valve INFO     DPID 1 (0x1) switch-1 Resolve response to 
 3. *响应ARP请求。*
 
 对比命令运行前后的流表
-```bash
+```terminal
 # ./diff-flows saveflows2 br1
 +table=1 priority=8191,in_port=1,dl_vlan=100,dl_src=00:01:02:03:04:05 hard_timeout=7134 actions=goto_table:4
 +table=2 priority=12320,ip,dl_vlan=100,nw_dst=10.100.0.1 actions=set_field:4196->vlan_vid,set_field:0e:00:00:00:00:01->eth_src,set_field:00:01:02:03:04:05->eth_dst,dec_ttl,goto_table:4
@@ -245,7 +245,7 @@ Sep 02 01:10:42 faucet.valve INFO     DPID 1 (0x1) switch-1 Resolve response to 
 
 ### Step2. Router Sends ARP Reply
 通常而言，路由发送的ARP回复在默认情况下会被丢弃,如流表规则展示的那样  
-```bash
+```terminal
 table=1, priority=20480,dl_src=0e:00:00:00:00:01 actions=drop
 ```
 需通过包捕获配合tcpdump来获取ARP回复消息信息；
@@ -253,15 +253,15 @@ table=1, priority=20480,dl_src=0e:00:00:00:00:01 actions=drop
 >  - [ ] *可能与ovn相关，需要进一步确认*
 
 设置各个port捕获文件
-```bash
+```terminal
 # for i in `seq 1 5`; do ovs-vsctl set interface p${i} options:pcap=p${i}.pcap; done
 ```
 对于p1，重新运行主机发送ARP数据包命令
-```bash
+```terminal
 # ovs-appctl ofproto/trace br1 in_port=p1,dl_src=00:01:02:03:04:05,dl_dst=ff:ff:ff:ff:ff:ff,dl_type=0x806,arp_spa=10.100.0.1,arp_tpa=10.100.0.254,arp_sha=00:01:02:03:04:05,arp_tha=ff:ff:ff:ff:ff:ff,arp_op=1 -generate
 ```
 在sandbox文件下出现p1的捕获文件p1.pcap，使用tcpdump查看捕获文件p1.pcap
-```bash
+```terminal
 # tcpdump -evvvr sandbox/p1.pcap
 reading from file sandbox/p1.pcap, link-type EN10MB (Ethernet)
 15:27:47.170997 0e:00:00:00:00:01 (oui Unknown) > 00:01:02:03:04:05 (oui Unknown), ethertype ARP (0x0806), length 60: Ethernet (len 6), IPv4 (len 4), Reply 10.100.0.254 is-at 0e:00:00:00:00:01 (oui Unknown), length 46
@@ -269,11 +269,11 @@ reading from file sandbox/p1.pcap, link-type EN10MB (Ethernet)
 ### Step3. Host Sends IP Packets 主机发送IP包
 通过step2，主机A获取了路由Router的mac地址，现在主机A可以通过路由Router的mac地址发送IP数据包了  
 输入命令
-```bash
+```terminal
 # ovs-appctl ofproto/trace br1 in_port=p1,dl_src=00:01:02:03:04:05,dl_dst=0e:00:00:00:00:01,udp,nw_src=10.100.0.1,nw_dst=10.200.0.1,nw_ttl=64 -generate
 ```
 输出如下
-```bash
+```terminal
 Flow: udp,in_port=1,vlan_tci=0x0000,dl_src=00:01:02:03:04:05,dl_dst=0e:00:00:00:00:01,nw_src=10.100.0.1,nw_dst=10.200.0.1,nw_tos=0,nw_ecn=0,nw_ttl=64,tp_src=0,tp_dst=0
 
 bridge("br1")
@@ -295,7 +295,7 @@ Datapath actions: push_vlan(vid=100,pcp=0),userspace(pid=0,controller(reason=1,d
 ```
 在上述输出的第2步中通过Router mac地址发送IP包至网络10.200.0.0/24中；  
 在第3步中，由于目前不知道10.200.0.1的mac地址，因此需要将数据包上传给controller控制器。此时faucet也不知10.200.0.1对应的mac地址，此时faucet.log信息如下：
-```bash
+```terminal
 Sep 02 07:47:10 faucet.valve INFO     DPID 1 (0x1) switch-1 resolving 10.200.0.1 (1 flows) on VLAN 200
 Sep 02 07:47:16 faucet.valve INFO     DPID 1 (0x1) switch-1 resolving 10.200.0.1 retry 2 (last attempt was 5s ago; 1 flows) on VLAN 200
 Sep 02 07:47:23 faucet.valve INFO     DPID 1 (0x1) switch-1 resolving 10.200.0.1 retry 3 (last attempt was 6s ago; 1 flows) on VLAN 200
@@ -304,7 +304,7 @@ Sep 02 07:47:23 faucet.valve INFO     DPID 1 (0x1) switch-1 resolving 10.200.0.1
 
 ### Step4. Router Broadcasts ARP Request 路由广播ARP地址
 查看p4, p5的捕获文件p4.pcap及p5.pcap，可发现路由广播ARP
-```bash
+```terminal
 # tcpdump -evvvr sandbox/p4.pcap
 reading from file sandbox/p4.pcap, link-type EN10MB (Ethernet)
 15:47:10.916508 0e:00:00:00:00:01 (oui Unknown) > Broadcast, ethertype ARP (0x0806), length 60: Ethernet (len 6), IPv4 (len 4), Request who-has 10.200.0.1 tell 10.200.0.254, length 46
@@ -320,7 +320,7 @@ reading from file sandbox/p4.pcap, link-type EN10MB (Ethernet)
 15:47:59.257684 0e:00:00:00:00:01 (oui Unknown) > Broadcast, ethertype ARP (0x0806), length 60: Ethernet (len 6), IPv4 (len 4), Request who-has 10.200.0.1 tell 10.200.0.254, length 46
 ```
 查看p3的捕获文件p3.pcap，可发现p3并未收到ARP广播
-```bash
+```terminal
 # tcpdump -evvvr sandbox/p3.pcap
 reading from file sandbox/p3.pcap, link-type EN10MB (Ethernet)
 ```
@@ -328,11 +328,11 @@ reading from file sandbox/p3.pcap, link-type EN10MB (Ethernet)
 ### Step5. Host B Sends ARP reply 主机B发送ARP回复
 主机B向faucet controller发送ARP reply  
 输入命令如下：
-```bash
+```terminal
 # ovs-appctl ofproto/trace br1 in_port=p4,dl_src=00:10:20:30:40:50,dl_dst=0e:00:00:00:00:01,dl_type=0x806,arp_spa=10.200.0.1,arp_tpa=10.200.0.254,arp_sha=00:10:20:30:40:50,arp_tha=0e:00:00:00:00:01,arp_op=2 -generate
 ```
 命令运行结果如下：
-```bash
+```terminal
 Flow: arp,in_port=4,vlan_tci=0x0000,dl_src=00:10:20:30:40:50,dl_dst=0e:00:00:00:00:01,arp_spa=10.200.0.1,arp_tpa=10.200.0.254,arp_op=2,arp_sha=00:10:20:30:40:50,arp_tha=0e:00:00:00:00:01
 
 bridge("br1")
@@ -352,17 +352,17 @@ Datapath actions: push_vlan(vid=200,pcp=0),userspace(pid=0,controller(reason=1,d
 ```
 
 此时faucet.log信息如下
-```bash
+```terminal
 Sep 02 08:29:05 faucet.valve INFO     DPID 1 (0x1) switch-1 L2 learned 00:10:20:30:40:50 (L2 type 0x0806, L2 dst 0e:00:00:00:00:01, L3 src 10.200.0.1, L3 dst 10.200.0.254) Port 4 VLAN 200 (1 hosts total)
 ```
 可发现faucet确实在p2端口上学习了10.200.0.1与00:10:20:30:40:50的对应关系  
 
 再次输入下述指令
-```bash
+```terminal
 ovs-appctl ofproto/trace br1 in_port=p1,dl_src=00:01:02:03:04:05,dl_dst=0e:00:00:00:00:01,udp,nw_src=10.100.0.1,nw_dst=10.200.0.1,nw_ttl=64 -generate
 ```
 运行结果如下
-```bash
+```terminal
 Flow: udp,in_port=1,vlan_tci=0x0000,dl_src=00:01:02:03:04:05,dl_dst=0e:00:00:00:00:01,nw_src=10.100.0.1,nw_dst=10.200.0.1,nw_tos=0,nw_ecn=0,nw_ttl=64,tp_src=0,tp_dst=0
 
 bridge("br1")
@@ -383,12 +383,12 @@ Megaflow: recirc_id=0,eth,udp,in_port=1,vlan_tci=0x0000/0x1fff,dl_src=00:01:02:0
 Datapath actions: push_vlan(vid=100,pcp=0),userspace(pid=0,controller(reason=1,dont_send=0,continuation=0,recirc_id=8,rule_cookie=0x5adc15c0,controller_id=0,max_len=110))
 ```
 此时faucet.log日志如下：
-```bash
+```terminal
 Sep 02 08:39:21 faucet.valve INFO     DPID 1 (0x1) switch-1 Adding new route 10.200.0.1/32 via 10.200.0.1 (00:10:20:30:40:50) on VLAN 200
 Sep 02 08:39:21 faucet.valve INFO     DPID 1 (0x1) switch-1 resolving 10.200.0.1 (1 flows) on VLAN 200
 ```
 可以发现faucet已添加10.200.0.1的解析记录，查看此时流表并与原始流表比对
-```bash
+```terminal
 . /root/diff-flows ~/saveflows2 br1
 +table=1 priority=8191,in_port=4,dl_vlan=200,dl_src=00:10:20:30:40:50 hard_timeout=7184 actions=goto_table:4
 +table=1 priority=8191,in_port=1,dl_vlan=100,dl_src=00:01:02:03:04:05 hard_timeout=7134 actions=goto_table:4
@@ -404,21 +404,21 @@ Sep 02 08:39:21 faucet.valve INFO     DPID 1 (0x1) switch-1 resolving 10.200.0.1
 在第6步实验时有两种情况：
 1. Faucet 路由缓存触发ARP解析的IP数据包，这样，此时缓存的IP数据包直接发送至目的地，可通过tcpdump与捕获的包缓存来确认。  
    输入命令
-   ```bash
+   ```terminal
    tcpdump -evvvr sandbox/p4.pcap ip
    ```
    输出如下
-   ```bash
+   ```terminal
    reading from file sandbox/p4.pcap, link-type EN10MB (Ethernet)
    ```
    说明此时不时情况1，Faucet路由并未缓存触发ARP解析的IP数据包；
 2. 重新发送IP数据包，完成IP数据包传输过程。  
    输入命令
-   ```bash
+   ```terminal
    ovs-appctl ofproto/trace br1 in_port=p1,dl_src=00:01:02:03:04:05,dl_dst=0e:00:00:00:00:01,udp,nw_src=10.100.0.1,nw_dst=10.200.0.1,nw_ttl=64 -generate
    ```
    输出如下
-   ```bash
+   ```terminal
    Flow: udp,in_port=1,vlan_tci=0x0000,dl_src=00:01:02:03:04:05,dl_dst=0e:00:00:00:00:01,nw_src=10.100.0.1,nw_dst=10.200.0.1,nw_tos=0,nw_ecn=0,nw_ttl=64,tp_src=0,tp_dst=0
 
    bridge("br1")
