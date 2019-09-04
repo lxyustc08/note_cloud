@@ -444,3 +444,9 @@ Sep 02 08:39:21 faucet.valve INFO     DPID 1 (0x1) switch-1 resolving 10.200.0.1
    Datapath actions: set(eth(src=0e:00:00:00:00:01,dst=00:10:20:30:40:50)),set(ipv4(ttl=63)),4
    ```
     通过输出可知，IP 数据包正常完成数据传输
+
+    观察Megaflow
+    ```terminal
+    Megaflow: recirc_id=0,eth,ip,in_port=1,vlan_tci=0x0000/0x1fff,dl_src=00:01:02:03:04:05,dl_dst=0e:00:00:00:00:01,nw_src=0.0.0.0/1,nw_dst=10.200.0.1,nw_ttl=64,nw_frag=no
+    ```
+    该Megaflow生成的规则针对源IP地址为0.0.0.0/1目的地址为10.200.0.1，源mac地址为00:01:02:03:04:05，目的mac地址为0e:00:00:00:00:01的一类数据包，这类数据包下次可直接使用Megaflow规则，迅速抵达目的地。
