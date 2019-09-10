@@ -1,0 +1,116 @@
+# IP tunnel实验
+## 配置IPsec双端IP
+1. node2-debian
+     ```terminal
+     ip_2=172.16.13.155
+     ip_3=192.168.100.144
+     ``` 
+2. node3-debian
+     ```terminal
+     ip_2=172.16.13.155
+     ip_3=192.168.100.144
+     ```
+## 配置IPsec双端网桥
+1. node2-debian
+   ```terminal
+   # ovs-vsctl add-br br-ipsec
+   # ip addr add 192.0.0.1/24 dev br-ipsec
+   # ip link set br-ipsec up
+   # ifconfig
+   br0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.122.244  netmask 255.255.255.0  broadcast 192.168.122.255
+        inet6 fe80::5054:ff:feb0:a38d  prefixlen 64  scopeid 0x20<link>
+        ether 52:54:00:b0:a3:8d  txqueuelen 1000  (Ethernet)
+        RX packets 2293  bytes 134618 (131.4 KiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 739  bytes 122756 (119.8 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+   br-ipsec: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+           inet 192.0.0.1  netmask 255.255.255.0  broadcast 0.0.0.0
+           inet6 fe80::988a:fbff:fe78:ab48  prefixlen 64  scopeid 0x20<link>
+           ether 9a:8a:fb:78:ab:48  txqueuelen 1000  (Ethernet)
+           RX packets 0  bytes 0 (0.0 B)
+           RX errors 0  dropped 0  overruns 0  frame 0
+           TX packets 57  bytes 6638 (6.4 KiB)
+           TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+   ens3: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+           ether 52:54:00:b0:a3:8d  txqueuelen 1000  (Ethernet)
+           RX packets 2295  bytes 166846 (162.9 KiB)
+           RX errors 0  dropped 0  overruns 0  frame 0
+           TX packets 738  bytes 122654 (119.7 KiB)
+           TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+   ens10: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+           inet 172.16.13.155  netmask 255.255.255.0  broadcast 172.16.13.255
+           inet6 fe80::5054:ff:fe5a:41a9  prefixlen 64  scopeid 0x20<link>
+           ether 52:54:00:5a:41:a9  txqueuelen 1000  (Ethernet)
+           RX packets 1274  bytes 80610 (78.7 KiB)
+           RX errors 0  dropped 0  overruns 0  frame 0
+           TX packets 66  bytes 7391 (7.2 KiB)
+           TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+   lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+           inet 127.0.0.1  netmask 255.0.0.0
+           inet6 ::1  prefixlen 128  scopeid 0x10<host>
+           loop  txqueuelen 1000  (Local Loopback)
+           RX packets 8  bytes 582 (582.0 B)
+           RX errors 0  dropped 0  overruns 0  frame 0
+           TX packets 8  bytes 582 (582.0 B)
+           TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+   ```
+2. node3-debian
+    ```terminal
+   # ovs-vsctl add-br br-ipsec
+   # ip addr add 192.0.0.1/24 dev br-ipsec
+   # ip link set br-ipsec up
+   # ifconfig
+   br0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.16.22.206  netmask 255.255.255.0  broadcast 172.16.22.255
+        inet6 fe80::5054:ff:fe2d:71a4  prefixlen 64  scopeid 0x20<link>
+        ether 52:54:00:2d:71:a4  txqueuelen 1000  (Ethernet)
+        RX packets 1740  bytes 98853 (96.5 KiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 461  bytes 59306 (57.9 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+   br-ipsec: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+           inet 192.0.0.1  netmask 255.255.255.0  broadcast 0.0.0.0
+           inet6 fe80::71:cff:fee7:de45  prefixlen 64  scopeid 0x20<link>
+           ether 02:71:0c:e7:de:45  txqueuelen 1000  (Ethernet)
+           RX packets 0  bytes 0 (0.0 B)
+           RX errors 0  dropped 0  overruns 0  frame 0
+           TX packets 21  bytes 2456 (2.3 KiB)
+           TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+   ens3: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+           ether 52:54:00:2d:71:a4  txqueuelen 1000  (Ethernet)
+           RX packets 1741  bytes 123265 (120.3 KiB)
+           RX errors 0  dropped 0  overruns 0  frame 0
+           TX packets 460  bytes 59204 (57.8 KiB)
+           TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+   ens10: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+           inet 192.168.100.144  netmask 255.255.255.0  broadcast 192.168.100.255
+           inet6 fe80::5054:ff:fefa:e196  prefixlen 64  scopeid 0x20<link>
+           ether 52:54:00:fa:e1:96  txqueuelen 1000  (Ethernet)
+           RX packets 1149  bytes 71791 (70.1 KiB)
+           RX errors 0  dropped 0  overruns 0  frame 0
+           TX packets 68  bytes 7498 (7.3 KiB)
+           TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+   lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+           inet 127.0.0.1  netmask 255.0.0.0
+           inet6 ::1  prefixlen 128  scopeid 0x10<host>
+           loop  txqueuelen 1000  (Local Loopback)
+           RX packets 2  bytes 78 (78.0 B)
+           RX errors 0  dropped 0  overruns 0  frame 0
+           TX packets 2  bytes 78 (78.0 B)
+           TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+   ```
+## 设置IPsec tunnel通道
+有三种方式实现IPsec tunnel通道
+### 使用预先定义的共享key
