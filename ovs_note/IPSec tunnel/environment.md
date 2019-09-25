@@ -1,7 +1,7 @@
 # IPSec Tunnel 实验环境
 ## 虚拟节点拓扑
 本次实验使用两台操作系统为debian 9的kvm虚拟机node2-debian9以及node3-debian9  
-+ node1-debian9
++ node2-debian9
   + IP地址192.168.122.244
   + 所在网络为libvirt的NAT网络，192.168.244.0/24
 + node3-debian9

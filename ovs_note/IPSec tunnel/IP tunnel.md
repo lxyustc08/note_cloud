@@ -114,3 +114,25 @@
 ## 设置IPsec tunnel通道
 有三种方式实现IPsec tunnel通道
 ### 使用预先定义的共享key
+1. 查看默认路由  
+   本次使用KVM虚拟机进行环境模拟，KVM虚拟机配置两块网卡，一块位于NAT网络中，另一块位于Route路由网络中，为保证IPSec软件包到达宿主机后可正确转发，使用Route网络网卡作为默认路由  
+   + node2-debian9
+        ```terminal
+        # route -n
+        Kernel IP routing table
+       Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+       0.0.0.0         172.16.13.1     0.0.0.0         UG    0      0        0 ens10
+       172.16.13.0     0.0.0.0         255.255.255.0   U     0      0        0 ens10
+       192.168.122.0   0.0.0.0         255.255.255.0   U     0      0        0 ens3
+        ```
+   + node3-debian9
+        ```terminal
+        # route -n
+        Kernel IP routing table
+         Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+         0.0.0.0         192.168.100.1   0.0.0.0         UG    0      0        0 ens10
+         172.16.22.0     0.0.0.0         255.255.255.0   U     0      0        0 ens3
+         192.168.100.0   0.0.0.0         255.255.255.0   U     0      0        0 ens10
+        ```
+2. 导入环境变量OVS_RUNDIR  
+   本次测试直接使用debian系统的deb包构建的openswitch-ipsec作为ipsec管理，使用strongswan作为IKE daemon进行密钥鉴权信息交换。
