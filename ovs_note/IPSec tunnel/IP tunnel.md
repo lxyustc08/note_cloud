@@ -14,7 +14,7 @@
 1. node2-debian
    ```terminal
    # ovs-vsctl add-br br-ipsec
-   # ip addr add 192.0.0.1/24 dev br-ipsec
+   # ip addr add 192.0.0.2/24 dev br-ipsec
    # ip link set br-ipsec up
    # ifconfig
    br0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
@@ -64,7 +64,7 @@
 2. node3-debian
     ```terminal
    # ovs-vsctl add-br br-ipsec
-   # ip addr add 192.0.0.1/24 dev br-ipsec
+   # ip addr add 192.0.0.3/24 dev br-ipsec
    # ip link set br-ipsec up
    # ifconfig
    br0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
@@ -135,4 +135,36 @@
          192.168.100.0   0.0.0.0         255.255.255.0   U     0      0        0 ens10
         ```
 2. 导入环境变量OVS_RUNDIR  
-   本次测试直接使用debian系统的deb包构建的openswitch-ipsec作为ipsec管理，使用strongswan作为IKE daemon进行密钥鉴权信息交换。
+   本次测试直接使用debian系统的deb包构建的openswitch-ipsec作为ipsec管理，使用strongswan作为IKE daemon进行密钥鉴权信息交换。对于openswitch-ipsec服务而言，其调用ovs-monitor-ipsec脚本，在/var/run/openvswitch下创建pid文件，为保证ovs-monitor-ipsec工作正常，需将环境变量OVS_RUNDIR设置为/var/run/openvswitch
+   ```terminal
+   # export OVS_RUNDIR=/var/run/openvswitch
+   # echo $OVS_RUNDIR
+   /var/run/openvswitch
+   ```
+3. 使用ovs-ctl启动ovsdb与ovs-vswitchd
+   ```terminal
+   # ovs-ctl start
+   [ ok ] Starting ovsdb-server.
+   [FAIL] system ID not configured, please use --system-id ... failed!
+   [ ok ] Configuring Open vSwitch system IDs.
+   [ ok ] Starting ovs-vswitchd.
+   [ ok ] Enabling remote OVSDB managers.
+   # ovs-ctl status
+   ovsdb-server is running with pid 1143
+   ovs-vswitchd is running with pid 1217
+   ```
+4. 配置IPSec tunnel通道  
+   ```terminal
+   # ovs-vsctl add-port br-ipsec tap1
+   # ovs-vsctl show
+   7322faef-7f97-40cd-8e2e-17722845b3a1
+    Bridge br-ipsec
+        Port br-ipsec
+            Interface br-ipsec
+                type: internal
+        Port "tap1"
+            Interface "tap1"
+    ovs_version: "2.11.90"
+   # ovs-vsctl set interface tap1 type=gre options:remote_ip=192.168.100.144 options:psk=swordfish
+   # ovs-appctl -t ovs-monitor-ipsec tunnels/show
+   ```
