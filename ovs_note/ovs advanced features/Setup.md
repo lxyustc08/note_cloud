@@ -12,7 +12,7 @@
                    type: internal
        ovs_version: "2.11.90"
    ```
-2. 添加p1~p4端口至br0，并将其open flow端口设置为1~4
+2. 添加p1\~p4端口至br0，并将其open flow端口设置为1\~4
    ```terminal
    for i in `seq 1 4`
    do
