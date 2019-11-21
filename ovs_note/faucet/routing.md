@@ -50,7 +50,7 @@ Aug 30 09:14:10 faucet.valve INFO     DPID 1 (0x1) switch-1 table ID 5 table con
         <th>match_fields(匹配域)</th>
     </tr>
     <tr>
-        <td>0</th>
+        <td>0</td>
         <td>VLAN</td>
         <td>eth_dst,eth_type,in_port,vlan_id</td>
     </tr>
