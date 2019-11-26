@@ -74,8 +74,10 @@ kube-proxy维护各节点上的网络规则，通过网络规则，可以实现P
 
 ## Addons
 Addons插件：利用Kubernetes资源([DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/), [Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)等)实现集群的相关特性，由于本质上是实现集群的特性，因此Addons插件运行的Kubernetes namespace均为```kube-system```。几个典型的Addons如下。
-### DNS
+### DNS  
+
 <span style="border-bottom: 2px solid red; font-weight: bold">尽管DNS是以插件的形式提供，但对于Kubernetes集群而言，是必不可少的</span>   
+
 集群的DNS主要为Kubernetes service服务  
 所有由Kubernetes创建的容器均包含Kubernetes集群中的DNS服务  
 ### Web UI (Dashboard)
