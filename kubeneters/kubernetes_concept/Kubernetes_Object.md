@@ -134,7 +134,62 @@ spec:
 
 劣势：
 + Imperative object configuration最好以文件为操作对象而非文件夹
-+ 对处于活动周期的Kubernetes对象进行更新时，会丢失掉前一版本的配置文件
++ 更新活动Kubernetes对象时必须将更新反应在配置文件中，这样的话下次更新后，本次更新情况信息丢失；
+
+一个例子，Kubernetes对象配置文件nginx.yaml:  
+```yaml
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  replicas: 2 # tells deployment to run 2 pods matching the template
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.7.9
+        ports:
+        - containerPort: 80
+```
+创建Kubernetes对象
+```terminal
+# kubectl create -f nginx.yaml
+```
+删除Kubernetes对象
+```terminal
+# kubectl delete -f nginx.yaml
+```
+配置文件更新后，更新Kubernetes对象
+```terminal
+# kubectl replace -f nginx.yaml
+```
+关于Imperative object configuration，参考[信息](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/imperative-config/)
 
 ## Declarative object configuration
-这种
+这种同样使用配置文件作为输入，但与Imperative object configuration不同在于Declarative object configuration方式在使用时无需向`kubectl`工具提供具体的Kubernetes对象操作，由`kubectl`工具自动识别。  
+这种方式工作在文件夹中，不同的Kubernetes对象的不同操作需要单独的一个文件。与Imperative object configuration相比。  
+优势：
++ 所有针对活动Kubernetes对象的更新信息将会被保留，甚至未更新至配置文件中的信息也会保留
++ 对文件夹操作具有更好的支持度  
+劣势：
++ 出问题后难以调试
++ 使用diffs进行局部更新引入复杂的合并及分支操作  
+
+例子，假定所有的Kubernetes对象配置文件存储在`configs`文件夹中，更新时先使用`diff`查看区别，再使用`apply`应用
+```terminal
+# kubectl diff -f configs/
+# kubectl apply -f configs/
+```
+针对文件递归操作
+```terminal
+# kubectl diff -f -R configs/
+# kubectl apply -f -R configs/
+```
+关于Declarative object configuration，参考[信息](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/declarative-config/)
