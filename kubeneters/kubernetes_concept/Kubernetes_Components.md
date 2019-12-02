@@ -62,7 +62,7 @@ cloud-controller-manager仅运行云服务商提供的控制器控制流程循�
 ## Node组件
 Node组件运行于各个节点上，负责运行pods，并提供Kubernetes运行环境
 ### kubelet
-运行于集群的各个节点上，确保容器运行于Pods中。  
+运行于集群的各个节点上，确保容器运行于Pods中。<span style="border-bottom: 2px solid red; font-weight: bold">kubelet地位类似于libvirt。</span>  
 kubelet以一系列```PodSpecs```为输入，```PodSpecs```提供了多种机制；kubelet确保容器按照```PodSpecs```中规定的健康运行。<span style="border-bottom: 2px solid red; font-weight: bold">kubelet并不管理非Kubernetes创建的容器</span>
 ### kube-proxy
 kube-proxy是运行在各个节点上的网络代理程序，用于实现Kubernetes service相关的概念。  
