@@ -90,7 +90,7 @@ Node的地址由三部分组成，下述三部分具体值由当前环境确定�
 + InternalIP： 节点内部网络地址，仅可被集群内部寻址；
 
 ### Conditions
-conditions描述节点运行状态，相关信息及内涵如下表所示。
+conditions描述<span style="border-bottom: 2px solid red; font-weight: bold">处于`Running`状态节点的状态信息</span>，相关信息及内涵如下表所示。
 
 <table>
     <tr>
@@ -201,4 +201,7 @@ Kubernetes根据上述描述创建节点对象，然后检查节点运行状态�
 目前，有三种方式对Kubernetes节点进行管理`node controller`，`kubectl`，`kubectl`
 
 ### Node Controller
-`node controller`是Kubernetes主要的节点管理组件，管理各种节点。
+`node controller`是Kubernetes主要的节点管理组件，管理各种节点。在node的生命周期中，node controller扮演了多种角色：
+1. 在Node注册时，将CIDR赋值给node（前提开启node的CIDR赋值选项）；
+2. 保持controller的节点列表与cloud provider提供的VM列表的更新，无论何时当node状态不健康时，node controller需要负责向cloud确认node对应的VM是否运行正常，如果VM不正常，controller负责将节点从其维护的节点列表中删除；
+3. 监控node健康状态，当node不可达时，node controller负责将node状态由`NodeReady`更改为`ConditionUnknown`；如果后续该节点持续不可达，node controller将该节点上的所有Pods强制退出。node controller按照参数`--node-monitor-k`

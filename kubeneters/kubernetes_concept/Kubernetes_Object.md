@@ -653,6 +653,7 @@ kubernetes-dashboard   kubernetes-dashboard-b65488c4-99hqs          1/1     Runn
 ## Supported fields
 不同的Resource支持的field selector不一样，总体而言，所有的resource类型均支持两个选择器`metadata.name`及`metadata.namespace`。**使用Resource不支持的selector将产生一个错误**。  
 例子：
+
 ```terminal
 # kubectl get ingress --field-selector foo.bar=baz
 Error from server (BadRequest): Unable to find "ingresses" that match label selector "", field selector "foo.bar=baz": "foo.bar" is not a known field selector: only "metadata.name", "metadata.namespace"

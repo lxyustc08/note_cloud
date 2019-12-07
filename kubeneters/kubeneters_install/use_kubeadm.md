@@ -1,4 +1,21 @@
-# 使用kubeadm部署kubeneters
+- [使用kubeadm部署kubeneters X86_64](#%e4%bd%bf%e7%94%a8kubeadm%e9%83%a8%e7%bd%b2kubeneters-x8664)
+	- [部署环境](#%e9%83%a8%e7%bd%b2%e7%8e%af%e5%a2%83)
+	- [部署步骤](#%e9%83%a8%e7%bd%b2%e6%ad%a5%e9%aa%a4)
+		- [Step.1 前期环境准备工作](#step1-%e5%89%8d%e6%9c%9f%e7%8e%af%e5%a2%83%e5%87%86%e5%a4%87%e5%b7%a5%e4%bd%9c)
+		- [Step.2 安装docker kubeadm kubectl kubelet](#step2-%e5%ae%89%e8%a3%85docker-kubeadm-kubectl-kubelet)
+		- [Step.3 创建kuberneters集群控制节点control plane](#step3-%e5%88%9b%e5%bb%bakuberneters%e9%9b%86%e7%be%a4%e6%8e%a7%e5%88%b6%e8%8a%82%e7%82%b9control-plane)
+		- [Step4. 添加工作节点](#step4-%e6%b7%bb%e5%8a%a0%e5%b7%a5%e4%bd%9c%e8%8a%82%e7%82%b9)
+		- [Step 5. 安装dashboard](#step-5-%e5%ae%89%e8%a3%85dashboard)
+		- [Step 6. 访问dashboard](#step-6-%e8%ae%bf%e9%97%aedashboard)
+- [使用kubeadm部署Kubernetes ARM64 v8](#%e4%bd%bf%e7%94%a8kubeadm%e9%83%a8%e7%bd%b2kubernetes-arm64-v8)
+	- [基础设施](#%e5%9f%ba%e7%a1%80%e8%ae%be%e6%96%bd)
+	- [容器运行环境安装](#%e5%ae%b9%e5%99%a8%e8%bf%90%e8%a1%8c%e7%8e%af%e5%a2%83%e5%ae%89%e8%a3%85)
+	- [安装kubeadm，kubectl，kubelet](#%e5%ae%89%e8%a3%85kubeadmkubectlkubelet)
+	- [构建Kubernetes控制平面](#%e6%9e%84%e5%bb%bakubernetes%e6%8e%a7%e5%88%b6%e5%b9%b3%e9%9d%a2)
+		- [与AMD64架构区别](#%e4%b8%8eamd64%e6%9e%b6%e6%9e%84%e5%8c%ba%e5%88%ab)
+		- [构建步骤](#%e6%9e%84%e5%bb%ba%e6%ad%a5%e9%aa%a4)
+
+# 使用kubeadm部署kubeneters X86_64
 ## 部署环境
 使用虚拟机部署
 1. 宿主机环境　　
@@ -340,4 +357,262 @@
    ```
 7. 登陆dashboard，URL: http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/login  
    复制6中得到的token,到token一栏中即可成功登陆  
-   ![Alt text](k8s界面.png "k8s界面")
+   ![Alt text](k8s界面.png "k8s界面")  
+
+# 使用kubeadm部署Kubernetes ARM64 v8
+
+## 基础设施
+使用树莓派4 集群进行部署，节点环境如下：
+
+<table>
+	<tr>
+		<th>节点名称</th>
+		<th>节点配置</th>
+		<th>节点操作系统</th>
+		<th>节点IP地址</th>
+	</tr>
+	<tr>
+		<td>master-arm</td>
+		<td>CPU：4 核 Cortex A72 </br> 内存： 4GB</td>
+		<td>Ubuntu 19.10 Server</td>
+		<td>10.10.197.97</td>
+	</tr>
+	<tr>
+		<td>slave-node1-arm</td>
+		<td>CPU：4 核 Cortex A72 </br> 内存： 4GB</td>
+		<td>Ubuntu 19.10 Server</td>
+		<td>10.10.197.98</td>
+	</tr>
+	<tr>
+		<td>slave-node2-arm</td>
+		<td>CPU：4 核 Cortex A72 </br> 内存： 4GB</td>
+		<td>Ubuntu 19.10 Server</td>
+		<td>10.10.197.99</td>
+	</tr>
+</table>
+
+**Note:**
+1. 2019年12月5日之前，Ubuntu 19.10 for Raspberry Pi 4 的内核存在Bug，对于4GB内存的树莓派型号不能识别USB设备，需要在/boot/firmware/usercfg.txt中配置参数`total_mem=3072`, 该bug目前已经修复，修复后的内核版本为`5.3.0-1014-raspi2`；
+2. Ubuntu 19.10 for Raspberry Pi 4的cgroup子系统中，默认情况下并未开启memory子系统，需要通过内核`cmd`参数开启，开启如下：
+   + Ubuntu 19.10 Server系统的内核`cmd`配置通过`/boot/firmware/nobtcmd.txt`中指定，在配置文件`/boot/firmware/nobtcmd.txt`后加入`cgroup_enable=memory cgroup_memory=1`，保存后重启；
+   + 重启后使用命令`lssubsys`
+     	```terminal
+     	cpuset
+       cpu,cpuacct
+       blkio
+       memory
+       devices
+       freezer
+       net_cls,net_prio
+       perf_event
+       pids
+       rdma
+		```
+		确认已开启memory cgroup子系统
+
+## 容器运行环境安装
+本次直接使用Ubuntu 19.10 for Raspberry Pi 4附带的docker软件包安装
+1. 配置镜像源，与AMD64架构类似，不过使用的是ubuntu-ports源，文件`/etc/apt/source.list`内容如下：
+```terminal
+## Note, this file is written by cloud-init on first boot of an instance
+## modifications made here will not survive a re-bundle.
+## if you wish to make changes you can:
+## a.) add 'apt_preserve_sources_list: true' to /etc/cloud/cloud.cfg
+##     or do the same in user-data
+## b.) add sources in /etc/apt/sources.list.d
+## c.) make changes to template file /etc/cloud/templates/sources.list.tmpl
+
+# See http://help.ubuntu.com/community/UpgradeNotes for how to upgrade to
+# newer versions of the distribution.
+deb http://mirrors.ustc.edu.cn/ubuntu-ports eoan main restricted
+# deb-src http://ports.ubuntu.com/ubuntu-ports eoan main restricted
+
+## Major bug fix updates produced after the final release of the
+## distribution.
+deb http://mirrors.ustc.edu.cn/ubuntu-ports eoan-updates main restricted
+# deb-src http://ports.ubuntu.com/ubuntu-ports eoan-updates main restricted
+
+## N.B. software from this repository is ENTIRELY UNSUPPORTED by the Ubuntu
+## team. Also, please note that software in universe WILL NOT receive any
+## review or updates from the Ubuntu security team.
+deb http://mirrors.ustc.edu.cn/ubuntu-ports eoan universe
+# deb-src http://ports.ubuntu.com/ubuntu-ports eoan universe
+deb http://mirrors.ustc.edu.cn/ubuntu-ports eoan-updates universe
+# deb-src http://ports.ubuntu.com/ubuntu-ports eoan-updates universe
+
+## N.B. software from this repository is ENTIRELY UNSUPPORTED by the Ubuntu
+## team, and may not be under a free licence. Please satisfy yourself as to
+## your rights to use the software. Also, please note that software in
+## multiverse WILL NOT receive any review or updates from the Ubuntu
+## security team.
+deb http://mirrors.ustc.edu.cn/ubuntu-ports eoan multiverse
+# deb-src http://ports.ubuntu.com/ubuntu-ports eoan multiverse
+deb http://mirrors.ustc.edu.cn/ubuntu-ports eoan-updates multiverse
+# deb-src http://ports.ubuntu.com/ubuntu-ports eoan-updates multiverse
+
+## N.B. software from this repository may not have been tested as
+## extensively as that contained in the main release, although it includes
+## newer versions of some applications which may provide useful features.
+## Also, please note that software in backports WILL NOT receive any review
+## or updates from the Ubuntu security team.
+deb http://mirrors.ustc.edu.cn/ubuntu-ports eoan-backports main restricted universe multiverse
+# deb-src http://ports.ubuntu.com/ubuntu-ports eoan-backports main restricted universe multiverse
+
+## Uncomment the following two lines to add software from Canonical's
+## 'partner' repository.
+## This software is not part of Ubuntu, but is offered by Canonical and the
+## respective vendors as a service to Ubuntu users.
+# deb http://archive.canonical.com/ubuntu eoan partner
+# deb-src http://archive.canonical.com/ubuntu eoan partner
+
+deb http://mirrors.ustc.edu.cn/ubuntu-ports eoan-security main restricted
+# deb-src http://ports.ubuntu.com/ubuntu-ports eoan-security main restricted
+deb http://mirrors.ustc.edu.cn/ubuntu-ports eoan-security universe
+# deb-src http://ports.ubuntu.com/ubuntu-ports eoan-security universe
+deb http://mirrors.ustc.edu.cn/ubuntu-ports eoan-security multiverse
+# deb-src http://ports.ubuntu.com/ubuntu-ports eoan-security multiverse
+```
+2. 使用如下命令安装docker
+```terminal
+# apt update
+# apt install docker.io
+```
+3. 配置/etc/docker/daemon.json  
+   配置内容如下：
+   ```json
+   {
+           "exec-opts": ["native.cgroupdriver=systemd"],
+           "log-driver": "json-file",
+           "log-opts": {
+                        "max-size": "100m"
+           },
+           "storage-driver": "overlay2",
+           "registry-mirrors": ["https://dockerhub.azk8s.cn"]
+   }
+   ```  
+   该配置配置镜像加速器，cgroupdriver等参数，与AMD64架构类似；
+4. 重启docker
+   ```terminal
+   # systemctl daemond-reload
+   # systemctl restart docker
+   ```
+
+## 安装kubeadm，kubectl，kubelet
+1. 配置Kubernetes工具源，配置文件`/etc/apt/source.list.d/k8s.list`如下：
+   ```terminal
+   deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main
+   ```
+2. 添加软件源key
+   ```terminal
+   curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add -
+   ```
+3. 安装kubeadm, kubectl, kubelet
+   ```terminal
+   # apt update
+   # apt install kubeadm kubectl kubelet
+   ```
+
+## 构建Kubernetes控制平面
+### 与AMD64架构区别
+1. 与AMD64架构不同，arm 64 v8架构部署Kubernetes控制平面时使用的镜像需为arm64架构镜像，国内阿里云镜像站中并未同步arm64架构容器镜像，在此处使用微软Azure建立的[GCR镜像站](http://mirror.azk8s.cn/help/gcr-proxy-cache.html)作为加速。
+2. calino网络插件不支持Arm 64架构，只能使用flannel插件，在kubeadm init时需要注意`--pod-network-cidr`参数配置
+3. dashboard使用的镜像`kubernetesui/metrics-scraper`从1.0.2版本开始才支持Arm 64架构，因此对象描述文件中的`kubernetesui/metrics-scraper`版本需>=1.0.2；
+
+### 构建步骤
+1. 创建control plane  
+   1.16版本的kubeadm init增加了`--image-repository`参数，该参数可指定容器镜像仓库，使用Azure GCR时命令如下：
+   ```terminal
+   # kubeadm init --pod-network-cidr=10.244.0.0/16 --image-repository="gcr.azk8s.cn/google_containers"
+   ```
+   此处的`--pod-network-cidr`必须为10.244.0.0/16，为flannel网络插件必须配置的，且不可改变；
+2. 参照AMD64架构下kubeconfig配置文件配置，授予master节点集群访问权限，等待除core dns pod外的pod创建完成，如下所示：
+   ```terminal
+   NAME                                 READY   STATUS    RESTARTS   AGE
+   coredns-667f964f9b-2n5wh             1/1     Pending   0          
+   coredns-667f964f9b-lf6sq             1/1     Pending   0          
+   etcd-master-arm                      1/1     Running   0          
+   kube-apiserver-master-arm            1/1     Running   0          
+   kube-controller-manager-master-arm   1/1     Running   0          
+   kube-scheduler-master-arm            1/1     Running   0          
+   ```
+3. 安装flannel插件
+   ```terminal
+   # kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/2140ac876ef134e0ed5af15c65e414cf26827915/Documentation/kube-flannel.yml
+   ```
+   等待coredns状态变为Running
+4. 添加Node  
+   与AMD64，通过token将节点添加至集群中
+   + slave-node1-arm
+     ```terminal
+     kubeadm join --token qou0kk.ir14bq6dpa2r6w79 10.10.197.97:6443 --discovery-token-ca-cert-hash sha256:7ae1c47e0fcec181ef32e3736f15465f6529f7154349ca31380e589c429fa91d
+     ```
+   + slave-node2-arm
+     ```terminal
+	 kubeadm join --token qou0kk.ir14bq6dpa2r6w79 10.10.197.97:6443 --discovery-token-ca-cert-hash sha256:7ae1c47e0fcec181ef32e3736f15465f6529f7154349ca31380e589c429fa91d
+	 ```
+   在master中查看节点运行状态
+   ```terminal
+   # kubectl get nodes
+   NAME              STATUS   ROLES    AGE   VERSION
+   master-arm        Ready    master   31h   v1.16.3
+   slave-node1-arm   Ready    <none>   30h   v1.16.3
+   slave-node2-arm   Ready    <none>   30h   v1.16.3
+   ```
+5. 测试，编写test.yaml，内容如下：
+   ```yaml
+   apiVersion: apps/v1
+   kind: Deployment
+   metadata:
+           name: nginx
+   spec:
+           selector:
+                   matchLabels:
+                           app: nginx
+           replicas: 4
+           template:
+                   metadata:
+                           labels:
+                                   app: nginx
+                   spec:
+                           containers:
+                                   - name: nginx
+                                     image: arm64v8/nginx:1.16
+                                     ports:
+                                             - containerPort: 80
+   ```
+   部署该对象
+   ```terminal
+   # kubectl apply -f test.yaml
+   ```
+   查看对象
+   ```terminal
+   # kubectl describe deployment nginx
+   Name:                   nginx
+   Namespace:              default
+   CreationTimestamp:      Fri, 06 Dec 2019 18:24:52 +0800
+   Labels:                 <none>
+   Annotations:            deployment.kubernetes.io/revision: 2
+                           kubectl.kubernetes.io/last-applied-configuration:
+                             {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"nginx","namespace":"default"},"spec":{"replicas":4,"selec...
+   Selector:               app=nginx
+   Replicas:               4 desired | 4 updated | 4 total | 4 available | 0 unavailable
+   StrategyType:           RollingUpdate
+   MinReadySeconds:        0
+   RollingUpdateStrategy:  25% max unavailable, 25% max surge
+   ```
+6. 安装dashboard  
+   获取dashboard对象配置文件
+   ```terminal
+   # wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta6/aio/deploy/recommended.yaml
+   ```
+   修改`kubernetesui/metrics-scraper`版本为1.0.1，创建dashboard对象
+   ```terminal
+   # kubectl apply -f recommended.yaml
+   ```
+   查看kubernetes-dashboard部署
+   ```terminal
+   # kubectl get deployments -n kubernetes-dashboard
+   NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
+   dashboard-metrics-scraper   1/1     1            1           22h
+   kubernetes-dashboard        1/1     1            1           22h
+   ```
