@@ -616,3 +616,46 @@ deb http://mirrors.ustc.edu.cn/ubuntu-ports eoan-security multiverse
    dashboard-metrics-scraper   1/1     1            1           22h
    kubernetes-dashboard        1/1     1            1           22h
    ```
+7. 类似于AMD64架构，将Kubernetes集群的配置文件复制到想要从集群外节点访问集群的节点中  
+   在远端节点创建文件夹
+   ```terminal
+   # mkdir kubernetes_arm_conf
+   # scp root@master_ip:/etc/kubernetes/admin.conf
+   ```
+8. 在master节点上创建用户文件admin.yaml
+   ```yaml
+   apiVersion: v1
+   kind: ServiceAccount
+   metadata:
+     name: lxyustc
+     namespace: kube-system
+
+   ---
+   apiVersion: rbac.authorization.k8s.io/v1
+   kind: ClusterRoleBinding
+   metadata:
+     name: lxyustc
+   roleRef:
+     apiGroup: rbac.authorization.k8s.io
+     kind: ClusterRole
+     name: cluster-admin
+   subjects:
+   - kind: ServiceAccount
+     name: lxyustc
+     namespace: kube-system
+   ```
+9. 使用kubeclt应用该文件
+    ```terminal
+	# kubectl apply -f admin.yaml
+	```
+10. 获取用户token
+    ```terminal
+	# kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep lxyustc | awk '{print $1}') | grep token
+	``` 
+11. 远端节点中运行proxy
+   ```terminal
+   # kubectl --kubeconfig admin.conf proxy
+   ```
+   登陆dashboard，URL: http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/login  
+   填入10中获得的token  
+   ![Alt Text](k8s_arm界面.png)
