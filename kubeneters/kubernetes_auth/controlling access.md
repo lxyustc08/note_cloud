@@ -20,7 +20,7 @@
 
 当TLS建立后，HTTP请求进入认证阶段，也即图中所示的step1。在集群创建的时候，可通过配置文件或配置脚本编辑API server，以运行一个或多个`Authenticator Modules`。
 
-常见的`Authenticator Modules`包括：`Client Certicates`（客户证书），`Password`，`Plain Tokens`，`Bootstrap Tokens`以及`JWT Tokens`（用于service accounts），在实际使用时可指定一个或多个`Authenticator Modules`，认证时会逐个依次尝试直到其中一个`Authenticator Modules`成功。
+常见的`Authenticator Modules`包括：`Client Certicates`（客户证书），`Password`，`Plain Tokens`，`Bootstrap Tokens`以及`JWT Tokens`（用于service accounts），在实际使用时可指定一个或多个`Authenticator Modules`，认证时会逐个尝试直到其中一个`Authenticator Modules`成功。
 
 **Note:** 认证阶段的输入为整个HTTP请求，但是通常情况下，认证阶段仅检测HTTP头或者客户证书。
 
