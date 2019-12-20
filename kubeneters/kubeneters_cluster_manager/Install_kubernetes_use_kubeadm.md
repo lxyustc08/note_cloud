@@ -357,7 +357,7 @@
    ```
 7. 登陆dashboard，URL: http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/login  
    复制6中得到的token,到token一栏中即可成功登陆  
-   ![Alt text](k8s界面.png "k8s界面")  
+   ![Alt text](pictures/k8s界面.png)  
 
 # 使用kubeadm部署Kubernetes ARM64 v8
 
@@ -658,4 +658,4 @@ deb http://mirrors.ustc.edu.cn/ubuntu-ports eoan-security multiverse
    ```
    登陆dashboard，URL: http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/login  
    填入10中获得的token  
-   ![Alt Text](k8s_arm界面.png)
+   ![Alt Text](./pictures/k8s_arm界面.png)

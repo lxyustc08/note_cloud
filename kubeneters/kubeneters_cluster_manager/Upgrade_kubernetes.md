@@ -38,7 +38,7 @@
     </tr>
 </table>
 
-![Alt Text](升级前集群状态信息.png)
+![Alt Text](pictures/升级前集群状态信息.png)
 
 ## 升级master
 
@@ -250,14 +250,14 @@
    ```terminal
    # kubectl get nodes
    ```
-   ![Alt Text](升级完后控制节点后的节点信息.png)  
+   ![Alt Text](pictures/升级完后控制节点后的节点信息.png)  
 
    可发现节点版本为v1.16.3，这是由于kubelet未升级导致，其实kubernetes系统应用pods已更新
 
    ```terminal
    # kubectl get pods -A
    ```
-   ![Alt Text](控制节点升级完成后pods状态.png)
+   ![Alt Text](pictures/控制节点升级完成后pods状态.png)
 
    使用如下命令更新`kubectl`与`kubelet`
 
@@ -273,8 +273,52 @@
    # kubectl get nodes
    ```
 
-   ![Alt Text](更新kubelet后的节点信息.png)
+   ![Alt Text](pictures/更新kubelet后的节点信息.png)
 
    上述命令说明，控制节点更新成功
 
 ## 升级work
+
+对于work升级而言，`kubeadm`升级步骤类似此处不再重复。下面以slave-node1-arm为例说明升级过程
+
+1. 使用`kubectl drain`命令将slave-node1-arm移除出资源调度池，并驱除slave-node1-arm上的pods
+   ```terminal
+   # kubectl drain slave-node1-arm --ignore-daemonsets
+   node/slave-node1-arm cordoned
+   evicting pod "coredns-6cd559f5d5-2fbqh"
+   pod/coredns-6cd559f5d5-2fbqh evicted
+   node/slave-node1-arm evicted
+   ```
+   > **Note:** 命令在master上执行，因为work上未配置集群访问权限
+
+2. 更新work
+   ```terminal
+   # kubeadm upgrade node
+   [upgrade] Reading configuration from the cluster...
+   [upgrade] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -oyaml'
+   [upgrade] Skipping phase. Not a control plane node.
+   [kubelet-start] Downloading configuration for the kubelet from the "kubelet-config-1.17" ConfigMap in the kube-system namespace
+   [kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+   [upgrade] The configuration for this node was successfully updated!
+   [upgrade] Now you should go ahead and upgrade the kubelet package using your package manager.
+   ```
+
+3. 将slave-node1-arm重新加入至资源调度池中
+   ```
+   # kubectl uncordon slave-node1-arm
+   node/slave-node1-arm uncordoned
+   ```
+   > **Note:** 命令在master上执行，因为work上未配置集群访问权限
+
+4. 更新`kubectl`以及`kubelet`
+   
+   与master类似，此处不再详述
+
+5. 按照上述步骤更新`slave-node2-arm`
+
+
+最终的集群状态
+
+![Alt Text](pictures/最终集群状态.png)
+
+![Alt Text](pictures/最终集群pods状态.png)
