@@ -1,11 +1,11 @@
+# Controlling Access to the Kubernetes API
+
 - [Controlling Access to the Kubernetes API](#controlling-access-to-the-kubernetes-api)
   - [Transport Security 传输阶段加密](#transport-security-%e4%bc%a0%e8%be%93%e9%98%b6%e6%ae%b5%e5%8a%a0%e5%af%86)
   - [Authentication 认证阶段](#authentication-%e8%ae%a4%e8%af%81%e9%98%b6%e6%ae%b5)
   - [Authorization 授权阶段](#authorization-%e6%8e%88%e6%9d%83%e9%98%b6%e6%ae%b5)
   - [Admission Control 准入控制](#admission-control-%e5%87%86%e5%85%a5%e6%8e%a7%e5%88%b6)
   - [API Server Ports and IPs](#api-server-ports-and-ips)
-
-# Controlling Access to the Kubernetes API
 
 普通用户、Kubernetes中的服务在使用API时需要通过权限认证，当一个请求到达API时，其经过几个阶段，如下图所示：
 ![Alt Text](access-control-overview.svg)
