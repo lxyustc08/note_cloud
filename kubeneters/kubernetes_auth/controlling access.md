@@ -12,7 +12,7 @@
 
 ## Transport Security 传输阶段加密
 
-在Kubernetes集群中，一般而言API server运行在6443端口之上。API server中存储着认证证书，该证书一般是自签署的(self-signed)。证书信息存储在文件/etc/kubernetes/config文件中。请求信息发送至集群过程中，请求数据使用该证书加密传输
+在Kubernetes集群中，一般而言API server运行在6443端口之上。API server中存储着认证证书，该证书一般是<span style="border-bottom: 2px solid red; font-weight: bold">自签署的(self-signed)</span>。证书信息存储在文件/etc/kubernetes/config文件中。请求信息发送至集群过程中，请求数据使用该证书加密传输
 
 ## Authentication 认证阶段
 
