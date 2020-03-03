@@ -44,4 +44,4 @@ Kubernetes通过authentication插件提供的`client certificates`(客户证书)
 ### X509 Client Certs
 客户证书认证方式通过给予API服务器`--client-ca-file=SOMEFILE`参数以开启。该参数引用的文件需要包含一个或多个证书发布机构`certificate authorities`验证客户提供的证书有效性。
 
-一旦证书被确认验证，该证书的主题`subject`字段被用作该请求的`username`
+一旦证书被确认验证，该证书的主题`certificates subject`字段被用作该请求的`username`
