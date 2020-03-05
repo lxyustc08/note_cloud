@@ -6,6 +6,8 @@
       - [使用kubectl describe secret获取token](#%e4%bd%bf%e7%94%a8kubectl-describe-secret%e8%8e%b7%e5%8f%96token)
       - [使用jsonpath获取token](#%e4%bd%bf%e7%94%a8jsonpath%e8%8e%b7%e5%8f%96token)
       - [相关说明](#%e7%9b%b8%e5%85%b3%e8%af%b4%e6%98%8e)
+  - [Programmatic access to the API](#programmatic-access-to-the-api)
+  - [Accessing the API from within a Pod](#accessing-the-api-from-within-a-pod)
 
 # Actions in accessing clusters
 
@@ -159,3 +161,7 @@ curl failed to verify the legitimacy of the server and therefore could not
 establish a secure connection to it. To learn more about this situation and
 how to fix it, please visit the web page mentioned above.
 ```
+
+## Programmatic access to the API
+
+## Accessing the API from within a Pod
