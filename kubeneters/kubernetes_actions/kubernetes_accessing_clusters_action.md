@@ -5,7 +5,7 @@
     - [不使用代理模式](#%e4%b8%8d%e4%bd%bf%e7%94%a8%e4%bb%a3%e7%90%86%e6%a8%a1%e5%bc%8f)
       - [使用kubectl describe secret获取token](#%e4%bd%bf%e7%94%a8kubectl-describe-secret%e8%8e%b7%e5%8f%96token)
       - [使用jsonpath获取token](#%e4%bd%bf%e7%94%a8jsonpath%e8%8e%b7%e5%8f%96token)
-    - [相关说明](#%e7%9b%b8%e5%85%b3%e8%af%b4%e6%98%8e)
+      - [相关说明](#%e7%9b%b8%e5%85%b3%e8%af%b4%e6%98%8e)
 
 # Actions in accessing clusters
 
@@ -144,5 +144,18 @@ curl http://localhost:8080/api/
    }
    ```
 
-### 相关说明
-上述两种方法使用了--insecure参数
+#### 相关说明
+在不使用代理模式时，使用了curl命令的--insecure参数，该参数不会检查证书的有效性。
+
+> curl命令的描述 (TLS) By default, every SSL connection curl makes is verified to be secure. This option allows curl to proceed and operate even for server connections otherwise considered insecure.  
+> The server connection is verified by making sure the server's certificate contains the right name and verifies successfully using the cert store.
+
+去掉--insecure参数，输出结果如下
+```terminal
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+More details here: https://curl.haxx.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+```
