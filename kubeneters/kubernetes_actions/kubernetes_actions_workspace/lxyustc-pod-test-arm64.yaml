@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: lxyustc-pod-test-arm64
+  labels:
+    arch: arm64
+spec:
+  nodeSelector:
+    arch: arm64
+  containers:
+  - name: lxyustc-pod-test-arm64
+    image: lxyustc.registrydomain.com:5000/test-image:v0.1
+    resources:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+    ports:
+      - containerPort: 8080
