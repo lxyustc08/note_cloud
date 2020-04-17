@@ -14,11 +14,7 @@
     - [添加修改annotations](#%e6%b7%bb%e5%8a%a0%e4%bf%ae%e6%94%b9annotations)
   - [Using Namespaces to group resources](#using-namespaces-to-group-resources)
     - [create a namespace](#create-a-namespace)
-- [kubectl get namespaces](#kubectl-get-namespaces)
-- [kubectl get pods -n lxyustc-namespace](#kubectl-get-pods--n-lxyustc-namespace)
-- [kubectl get pods -A](#kubectl-get-pods--a)
-- [kubectl apply -f lxyustc-pod-test.yaml -n lxyustc-namespace](#kubectl-apply--f-lxyustc-pod-testyaml--n-lxyustc-namespace)
-- [kubectl get pods -n lxyustc-namespace](#kubectl-get-pods--n-lxyustc-namespace-1)
+    - [managing objects in other namespace](#managing-objects-in-other-namespace)
 
 # Kubernetes Pods Action
 
@@ -808,7 +804,7 @@ metadata:
 # kubectl apply -f lxyutc-namespace.yaml
 ```
 
-查看namespace
+查看namespace：
 
 ```terminal
 # kubectl get namespaces
@@ -831,6 +827,8 @@ lxyustc-namespace      Active   2m5s
 
 ```terminal
 # kubectl get namespaces
+```
+
 查看namespace
 
 ```terminal
