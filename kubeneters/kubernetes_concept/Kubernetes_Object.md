@@ -257,6 +257,12 @@ spec:
 # Namespaces
 本质上而言，Namespaces是Kubernetes的虚拟集群抽象，<span style="border-bottom: 2px solid red; font-weight: bold">一个namespace对应一个虚拟集群</span>
 
+<span style="border-bottom: 2px solid red; font-weight: bold">关于namespace集群抽象的补充：</span>
+
+1. Namespace提供了一种在不同的组中操作互相隔离的`kubernetes objects`对象的机制；
+2. Namespace并未提供任何隔离机制，若某一**Namespace A**中的`kubernetes objects`知道另一个**Namespace B**中的`kuberentes objects`的IP地址，且IP地址可达，则可正常通信；
+3. 可通过网络隔离设计来实现Namespace间的隔离，这种是由网络解决方案来决定的，而非Namespace本身的机制决定的。
+
 ## Namespaces的使用场景
 Namespace设计意图：解决集群中分属不同的团队、项目的多个用户使用需求。Namespace的一些特性：
 + Namespace提供了命名域支持，同一Namespace中Kubernetes对象名称唯一，但不同的Namespace之间，Kubernetes对象名称可以重复
