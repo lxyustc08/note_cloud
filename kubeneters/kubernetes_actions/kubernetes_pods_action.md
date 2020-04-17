@@ -5,10 +5,20 @@
   - [使用labels组织pods](#%e4%bd%bf%e7%94%a8labels%e7%bb%84%e7%bb%87pods)
     - [在创建pod时指定pod的labels](#%e5%9c%a8%e5%88%9b%e5%bb%bapod%e6%97%b6%e6%8c%87%e5%ae%9apod%e7%9a%84labels)
     - [修改现有Pods的Labels](#%e4%bf%ae%e6%94%b9%e7%8e%b0%e6%9c%89pods%e7%9a%84labels)
-  - [使用label selectors选择pods集合](#%e4%bd%bf%e7%94%a8label-selectors%e9%80%89%e6%8b%a9pods%e9%9b%86%e5%90%88)
-    - [使用label selectors列出Pods](#%e4%bd%bf%e7%94%a8label-selectors%e5%88%97%e5%87%bapods)
-  - [使用lables和selectors约束pods调度](#%e4%bd%bf%e7%94%a8lables%e5%92%8cselectors%e7%ba%a6%e6%9d%9fpods%e8%b0%83%e5%ba%a6)
-    - [调度pods至特定节点](#%e8%b0%83%e5%ba%a6pods%e8%87%b3%e7%89%b9%e5%ae%9a%e8%8a%82%e7%82%b9)
+    - [使用label selectors选择pods集合](#%e4%bd%bf%e7%94%a8label-selectors%e9%80%89%e6%8b%a9pods%e9%9b%86%e5%90%88)
+      - [使用label selectors列出Pods](#%e4%bd%bf%e7%94%a8label-selectors%e5%88%97%e5%87%bapods)
+    - [使用lables和selectors约束pods调度](#%e4%bd%bf%e7%94%a8lables%e5%92%8cselectors%e7%ba%a6%e6%9d%9fpods%e8%b0%83%e5%ba%a6)
+      - [调度pods至特定节点](#%e8%b0%83%e5%ba%a6pods%e8%87%b3%e7%89%b9%e5%ae%9a%e8%8a%82%e7%82%b9)
+  - [Annotating 注释](#annotating-%e6%b3%a8%e9%87%8a)
+    - [查看现有Kubernetes object的annotation](#%e6%9f%a5%e7%9c%8b%e7%8e%b0%e6%9c%89kubernetes-object%e7%9a%84annotation)
+    - [添加修改annotations](#%e6%b7%bb%e5%8a%a0%e4%bf%ae%e6%94%b9annotations)
+  - [Using Namespaces to group resources](#using-namespaces-to-group-resources)
+    - [create a namespace](#create-a-namespace)
+- [kubectl get namespaces](#kubectl-get-namespaces)
+- [kubectl get pods -n lxyustc-namespace](#kubectl-get-pods--n-lxyustc-namespace)
+- [kubectl get pods -A](#kubectl-get-pods--a)
+- [kubectl apply -f lxyustc-pod-test.yaml -n lxyustc-namespace](#kubectl-apply--f-lxyustc-pod-testyaml--n-lxyustc-namespace)
+- [kubectl get pods -n lxyustc-namespace](#kubectl-get-pods--n-lxyustc-namespace-1)
 
 # Kubernetes Pods Action
 
@@ -588,12 +598,12 @@ test-replicator          1/1     Running   0          26h
 test-replicator-w6xm8    1/1     Running   0          23h
 ```
 
-## 使用label selectors选择pods集合
+### 使用label selectors选择pods集合
 
 关于label selector介绍，查看此链接[label selector](../kuberete_concept/../kubernetes_concept/Kubernetes_Object.md#label-selector
 )
 
-### 使用label selectors列出Pods
+#### 使用label selectors列出Pods
 
 使用命令`kubectl get pods -l <labels>`列出特定label中的pods，注意此处**是`-l`而非`-L`**
 
@@ -623,7 +633,7 @@ test-replicator-w6xm8    1/1     Running   0          41h
 
 ![Alt Text](kubernetes_actions_pictures/label_selector_app=pc,rel=beta.png "使用app=pc,rel=beta这一组合条件选择pods")
 
-## 使用lables和selectors约束pods调度
+### 使用lables和selectors约束pods调度
 
 在异构集群中，某些特定条件下需要将pods调度至特定节点上，如GPU、SSD节点。此时可通过`node labels`及`node label selectors`进行。
 
@@ -646,7 +656,7 @@ slave-node1-arm   Ready    <none>   118d   v1.18.0   arm64
 slave-node2-arm   Ready    <none>   118d   v1.18.0
 ```
 
-### 调度pods至特定节点
+#### 调度pods至特定节点
 
 pod描述文件[lxyustc-pod-test-arm64](kubernetes_actions_workspace/lxyustc-pod-test-arm64.yaml)
 
@@ -734,3 +744,180 @@ Events:
   Warning  FailedScheduling  <unknown>  default-scheduler  0/3 nodes are available: 3 node(s) didn't match node selector.
 ```
 
+## Annotating 注释
+
+除了Labels外，Kubernetes对象还可以拥有注释`annotation`，`annotations`本身也是键值对，但与labels不同在于，annotation无法用于组织kubernetes object，`annotation`注释详细介绍内容参考[annotation](../kubernetes_concept/Kubernetes_Object.md#Annotation)
+
+kubernetes默认情况下自动为kubernetes Object添加特定的`annotations`
+
+### 查看现有Kubernetes object的annotation
+
+```terminal
+# kubectl get pods lxyustc-pod-manual -o yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","kind":"Pod","metadata":{"annotations":{},"name":"lxyustc-pod-manual","namespace":"default"},"spec":{"containers":[{"image":"lxyustc.registrydomain.com:5000/test-image:v0.1","name":"lxyustc-po
+d-manual","ports":[{"containerPort":8080,"protocol":"TCP"}],"resources":{"limits":{"cpu":"500m","memory":"128Mi"}}}]}}
+......
+```
+
+### 添加修改annotations
+
+使用`kubectl annotate`命令编辑`kubernetes object`的annotations
+
+```terminal
+# kubectl annotate pods lxyustc-pod-manual createmethod=mannual
+```
+
+查看pod的annotation
+
+```terminal
+# kubectl get pods lxyustc-pod-manual -o yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    createmethod: mannual
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","kind":"Pod","metadata":{"annotations":{},"name":"lxyustc-pod-manual","namespace":"default"},"spec":{"containers":[{"image":"lxyustc.registrydomain.com:5000/test-image:v0.1","name":"lxyustc-po
+d-manual","ports":[{"containerPort":8080,"protocol":"TCP"}],"resources":{"limits":{"cpu":"500m","memory":"128Mi"}}}]}}
+```
+
+## Using Namespaces to group resources
+
+关于namespaces的详细介绍参考[Namespace](../kubernetes_concept/Kubernetes_Object.md#Namespaces)
+
+
+### create a namespace
+
+通过yaml描述文件创建namespace，[lxyustc-namespace.yaml](kubernetes_actions_workspace/lxyustc-namespace.yaml)
+
+```yaml
+apiVersion: v1
+kind: namespace
+metadata:
+    name: lxyustc-namespace
+```
+
+创建namespace
+
+```terminal
+# kubectl apply -f lxyutc-namespace.yaml
+```
+
+查看namespace
+
+```terminal
+# kubectl get namespaces
+NAME                   STATUS   AGE
+default                Active   132d
+kube-node-lease        Active   132d
+kube-public            Active   132d
+kube-system            Active   132d
+kubernetes-dashboard   Active   17d
+lxyustc-namespace      Active   2m5s
+```
+
+也可通过`kubectl`命令行工具创建namespace
+
+```terminal
+# kubectl create namespace test-namespace
+```
+
+查看namespace
+
+```terminal
+# kubectl get namespaces
+查看namespace
+
+```terminal
+# kubectl get namespaces
+NAME                   STATUS   AGE
+default                Active   132d
+kube-node-lease        Active   132d
+kube-public            Active   132d
+kube-system            Active   132d
+kubernetes-dashboard   Active   17d
+lxyustc-namespace      Active   2m5s
+```
+
+### managing objects in other namespace
+
+通过指定`kubernetes object`的metadata域中的namespace即可将`kubernetes object`创建在特定的namespace中。
+
+编写配置文件[lxyustc-pod-test-namespace](kubernetes_actions_workspace/lxyustc-pod-test-namespace.yaml)
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: lxyustc-pod-manual
+  namespace: lxyustc-namespace
+spec:
+  containers:
+  - name: lxyustc-pod-manual
+    image: lxyustc.registrydomain.com:5000/test-image:v0.1
+    resources:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+    ports:
+      - containerPort: 8080
+        protocol: TCP
+```
+
+查看namespace中的pod
+
+```terminal
+# kubectl get pods -n lxyustc-namespace
+NAME                 READY   STATUS    RESTARTS   AGE
+lxyustc-pod-manual   1/1     Running   0          12s
+```
+
+查看所有的pods
+
+```terminal
+# kubectl get pods -A
+NAMESPACE              NAME                                        READY   STATUS    RESTARTS   AGE
+default                lxyustc-pod-manual                          1/1     Running   2          16d
+default                lxyustc-pod-manual-v2                       1/1     Running   2          15d
+default                lxyustc-pod-test-arm64                      1/1     Running   0          107m
+default                nginx-5564cc57cd-68k6k                      1/1     Running   2          17d
+default                nginx-5564cc57cd-zl7fs                      1/1     Running   2          17d
+default                test-replicator                             1/1     Running   2          16d
+default                test-replicator-w6xm8                       1/1     Running   2          15d
+kube-system            coredns-6fbfdf9657-9n7bp                    1/1     Running   5          17d
+kube-system            coredns-6fbfdf9657-jtn44                    1/1     Running   2          17d
+kube-system            etcd-master-arm                             1/1     Running   4          17d
+kube-system            kube-apiserver-master-arm                   1/1     Running   5          17d
+kube-system            kube-controller-manager-master-arm          1/1     Running   4          17d
+kube-system            kube-flannel-ds-arm64-4ttrp                 1/1     Running   15         132d
+kube-system            kube-flannel-ds-arm64-8mq2n                 1/1     Running   21         132d
+kube-system            kube-flannel-ds-arm64-wvnkt                 1/1     Running   18         132d
+kube-system            kube-proxy-6qgfw                            1/1     Running   2          17d
+kube-system            kube-proxy-fjjcs                            1/1     Running   4          17d
+kube-system            kube-proxy-j7tn8                            1/1     Running   3          17d
+kube-system            kube-scheduler-master-arm                   1/1     Running   4          17d
+kubernetes-dashboard   dashboard-metrics-scraper-dc6947fbf-bngnp   1/1     Running   3          17d
+kubernetes-dashboard   kubernetes-dashboard-64686c4bf9-xptps       1/1     Running   4          17d
+lxyustc-namespace      lxyustc-pod-manual                          1/1     Running   0          8s
+```
+
+可观察到不同的namespace间可存在同样的pod名称
+
+也可通过kubectl命令行的-n参数直接指定创建pod的namespace
+
+```terminal
+# kubectl apply -f lxyustc-pod-test.yaml -n lxyustc-namespace
+```
+
+查看namespace中的pod
+
+```terminal
+# kubectl get pods -n lxyustc-namespace
+NAME                 READY   STATUS    RESTARTS   AGE
+lxyustc-pod-manual   1/1     Running   0          8s
+```
