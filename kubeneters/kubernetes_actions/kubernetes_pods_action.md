@@ -15,10 +15,17 @@
   - [Using Namespaces to group resources](#using-namespaces-to-group-resources)
     - [create a namespace](#create-a-namespace)
     - [managing objects in other namespace](#managing-objects-in-other-namespace)
+  - [Stopping and removing pods](#stopping-and-removing-pods)
+    - [直接通过名称删除pods](#%e7%9b%b4%e6%8e%a5%e9%80%9a%e8%bf%87%e5%90%8d%e7%a7%b0%e5%88%a0%e9%99%a4pods)
+    - [Deleting pods using label selectors](#deleting-pods-using-label-selectors)
+    - [Deleting pods by deleting the whole namespace](#deleting-pods-by-deleting-the-whole-namespace)
+    - [--all 标志位](#all-%e6%a0%87%e5%bf%97%e4%bd%8d)
 
 # Kubernetes Pods Action
 
 查看Kubernetes API参考文档 https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#pod-v1-core
+
+也可通过`kubectl explain`命令对某一资源接口进行解释
 
 ## 查看已存在的Pod yaml描述文件
 
@@ -919,3 +926,224 @@ lxyustc-namespace      lxyustc-pod-manual                          1/1     Runni
 NAME                 READY   STATUS    RESTARTS   AGE
 lxyustc-pod-manual   1/1     Running   0          8s
 ```
+
+## Stopping and removing pods
+
+### 直接通过名称删除pods
+
+使用`kubectl`命令直接删除特定的pods
+
+```terminal
+# kubectl delete pods lxyustc-pod-manual-v2
+pod "lxyustc-pod-manual-v2" deleted
+```
+
+查看此时的pods列表
+
+```terminal
+# kubectl get pods
+lxyustc-pod-manual       1/1     Running   2          17d
+lxyustc-pod-test-arm64   1/1     Running   0          5h18m
+nginx-5564cc57cd-68k6k   1/1     Running   2          17d
+nginx-5564cc57cd-zl7fs   1/1     Running   2          17d
+test-replicator          1/1     Running   2          16d
+test-replicator-w6xm8    1/1     Running   2          16d
+```
+
+在发出删除命令后，kubernetes终止pods中的所有container,终止时，Kubernetes首先发送`SIGTERM`信号给进程，等待进程以*gracefully*的方式关闭，当等待时间超过配置的时间上限后，Kubernetes将发送`SIGKILL`信号给进程，强制杀死进程。
+
+因此，为确保每次进程以*gracefully*的方式中止，因该container中的进程可以恰当地处理`SIGTERM`信号量。
+
+### Deleting pods using label selectors
+
+可通过label selectors删除具备同样label的pods。
+
+删除前查看pods列表
+
+```terminal
+# kubectl get pods -L creation_method
+NAME                     READY   STATUS    RESTARTS   AGE     CREATION_METHOD
+lxyustc-pod-manual       1/1     Running   2          17d     manual
+lxyustc-pod-manual-v2    1/1     Running   0          23s     manual
+lxyustc-pod-test-arm64   1/1     Running   0          5h43m
+nginx-5564cc57cd-68k6k   1/1     Running   2          17d
+nginx-5564cc57cd-zl7fs   1/1     Running   2          17d
+test-replicator          1/1     Running   2          16d
+test-replicator-w6xm8    1/1     Running   2          16d
+```
+
+删除具有creation_method=manual的pods
+
+```terminal
+# kubectl delete pods -l creation_method=manual
+pod "lxyustc-pod-manual" deleted
+pod "lxyustc-pod-manual-v2" deleted
+```
+
+查看此时的pods列表
+
+```terminal
+# kubectl get pods 
+lxyustc-pod-test-arm64   1/1     Running   0          5h48m
+nginx-5564cc57cd-68k6k   1/1     Running   2          17d
+nginx-5564cc57cd-zl7fs   1/1     Running   2          17d
+test-replicator          1/1     Running   2          16d
+test-replicator-w6xm8    1/1     Running   2          16d
+```
+
+### Deleting pods by deleting the whole namespace
+
+若不需要某一特定的namespace，通过命令kubectl delete删除，删除时会自动删除namespace中的pods。
+
+删除前
+
+```terminal
+# kubectl get pods -n lxyustc-namespace
+NAME                 READY   STATUS    RESTARTS   AGE
+lxyustc-pod-manual   1/1     Running   0          4s
+```
+
+删除lxyustc-namespace
+
+```terminal
+# kubectl delete namespaces lxyustc-namespace
+```
+
+查看所有pods
+
+```terminal
+# 
+NAMESPACE              NAME                                        READY   STATUS    RESTARTS   AGE
+default                lxyustc-pod-test-arm64                      1/1     Running   0          6h52m
+default                nginx-5564cc57cd-68k6k                      1/1     Running   2          17d
+default                nginx-5564cc57cd-zl7fs                      1/1     Running   2          17d
+default                test-replicator                             1/1     Running   2          16d
+default                test-replicator-w6xm8                       1/1     Running   2          16d
+kube-system            coredns-6fbfdf9657-9n7bp                    1/1     Running   5          17d
+kube-system            coredns-6fbfdf9657-jtn44                    1/1     Running   2          17d
+kube-system            etcd-master-arm                             1/1     Running   4          17d
+kube-system            kube-apiserver-master-arm                   1/1     Running   5          17d
+kube-system            kube-controller-manager-master-arm          1/1     Running   4          17d
+kube-system            kube-flannel-ds-arm64-4ttrp                 1/1     Running   15         133d
+kube-system            kube-flannel-ds-arm64-8mq2n                 1/1     Running   21         133d
+kube-system            kube-flannel-ds-arm64-wvnkt                 1/1     Running   18         133d
+kube-system            kube-proxy-6qgfw                            1/1     Running   2          17d
+kube-system            kube-proxy-fjjcs                            1/1     Running   4          17d
+kube-system            kube-proxy-j7tn8                            1/1     Running   3          17d
+kube-system            kube-scheduler-master-arm                   1/1     Running   4          17d
+kubernetes-dashboard   dashboard-metrics-scraper-dc6947fbf-bngnp   1/1     Running   3          17d
+kubernetes-dashboard   kubernetes-dashboard-64686c4bf9-xptps       1/1     Running   4          17d
+```
+
+### --all 标志位
+
+`--all`标志位类似于通配符，配合kubectl delete命令即删除Namespace中指定的某一资源类型的所有实例。
+
+默认的default Namespace中的pods
+
+```terminal
+# kubectl get pods 
+lxyustc-pod-test-arm64   1/1     Running   0          6h57m
+nginx-5564cc57cd-68k6k   1/1     Running   2          17d
+nginx-5564cc57cd-zl7fs   1/1     Running   2          17d
+test-replicator          1/1     Running   2          16d
+test-replicator-w6xm8    1/1     Running   2          16d
+```
+
+删除`default Namespace`中的所有pods
+
+```terminal
+# kubectl delete pods --all -n default
+pod "lxyustc-pod-test-arm64" deleted
+pod "nginx-5564cc57cd-68k6k" deleted
+pod "nginx-5564cc57cd-zl7fs" deleted
+pod "test-replicator" deleted
+pod "test-replicator-w6xm8" deleted
+```
+
+查看此时的pods
+
+```terminal
+# kubectl get pods
+nginx-5564cc57cd-vxshr   1/1     Running   0          94s
+nginx-5564cc57cd-xsm5r   1/1     Running   0          94s
+test-replicator-xh679    1/1     Running   0          94s
+```
+
+剩余的pods为`replicaset controller`自动创建
+
+```terminal
+# 
+Name:           nginx-5564cc57cd
+Namespace:      default
+Selector:       app=nginx,pod-template-hash=5564cc57cd
+Labels:         app=nginx
+                pod-template-hash=5564cc57cd
+Annotations:    deployment.kubernetes.io/desired-replicas: 2
+                deployment.kubernetes.io/max-replicas: 3
+                deployment.kubernetes.io/revision: 1
+Controlled By:  Deployment/nginx
+Replicas:       2 current / 2 desired
+Pods Status:    2 Running / 0 Waiting / 0 Succeeded / 0 Failed
+Pod Template:
+  Labels:  app=nginx
+           pod-template-hash=5564cc57cd
+  Containers:
+   nginx:
+    Image:        arm64v8/nginx:1.17
+    Port:         80/TCP
+    Host Port:    0/TCP
+    Environment:  <none>
+    Mounts:       <none>
+  Volumes:        <none>
+Events:
+  Type    Reason            Age   From                   Message
+  ----    ------            ----  ----                   -------
+  Normal  SuccessfulCreate  5m6s  replicaset-controller  Created pod: nginx-5564cc57cd-vxshr
+  Normal  SuccessfulCreate  5m6s  replicaset-controller  Created pod: nginx-5564cc57cd-xsm5r
+
+
+Name:         test-replicator
+Namespace:    default
+Selector:     app=httpd
+Labels:       <none>
+Annotations:  Replicas:  1 current / 1 desired
+Pods Status:  1 Running / 0 Waiting / 0 Succeeded / 0 Failed
+Pod Template:
+  Labels:  app=httpd
+  Containers:
+   test-http:
+    Image:        lxyustc.registrydomain.com:5000/test-image:v0.1
+    Port:         8080/TCP
+    Host Port:    0/TCP
+    Environment:  <none>
+    Mounts:       <none>
+  Volumes:        <none>
+Events:
+  Type    Reason            Age   From                   Message
+  ----    ------            ----  ----                   -------
+  Normal  SuccessfulCreate  5m6s  replicaset-controller  Created pod: test-replicator-xh679
+```
+
+可通过资源类别通配符`all`指定所有资源
+
+```terminal
+# kubectl delete all --all -n default
+pod "nginx-5564cc57cd-vxshr" deleted
+pod "nginx-5564cc57cd-xsm5r" deleted
+pod "test-replicator-xh679" deleted
+service "kubernetes" deleted
+service "test-replicator" deleted
+deployment.apps "nginx" deleted
+replicaset.apps "nginx-5564cc57cd" deleted
+replicaset.apps "test-replicator" deleted
+```
+
+查看此时的pods
+
+```terminal
+# kubectl get pods
+No resources found in default namespace.
+```
+
+> 注意，上述删除命令将kubernetes service一并删除了，但kubernetes本身会自动重启该服务。
