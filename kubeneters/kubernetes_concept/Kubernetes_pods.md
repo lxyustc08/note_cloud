@@ -3,6 +3,7 @@
   - [Pods一种理解角度](#pods%e4%b8%80%e7%a7%8d%e7%90%86%e8%a7%a3%e8%a7%92%e5%ba%a6)
 - [Pods的合适组织方式](#pods%e7%9a%84%e5%90%88%e9%80%82%e7%bb%84%e7%bb%87%e6%96%b9%e5%bc%8f)
   - [Pods中运行多个Container的建议设计模式](#pods%e4%b8%ad%e8%bf%90%e8%a1%8c%e5%a4%9a%e4%b8%aacontainer%e7%9a%84%e5%bb%ba%e8%ae%ae%e8%ae%be%e8%ae%a1%e6%a8%a1%e5%bc%8f)
+- [Container Probe](#container-probe)
 
 # Kubernetes Pods
 
@@ -48,5 +49,28 @@ Pods中运行多个Container的建议模式是，应用由一个主进程与多�
 + Must they be scaled together or individually?
 
 ![Alt text](kubernetes_thinking_multiple_container_run_in_a_single_pod.png)
+
+# Container Probe
+
+Container Probe是一个探测器，由`kubelet`执行探测活动，在执行`Probe`时，`kubelet`调用由Container实现的Handler。对于Handler而言，可分为三类：
+
+1. ExcAction
+   + 执行指定的命令，当命令成功执行并返回0时，探测被认为成功
+2. TCPSocketAction
+   + 在Container的IP地址的特定端口上执行TCP链接检测，当端口处于打开状态时，探测被认为成功
+3. HTTPGetAction
+   + 在Conatiner的IP地址的特定端口及路径上执行HTTP GET请求，如果相应状态码大于等于200或小于400，则探测被认为成功
+
+每个`Probe`由三种结果：
+
+1. Success: Container通过检测
+2. Failure: Container未通过检测
+3. Unknown: 探测失败，无需采取行动
+
+对于处于运行状态的`container`而言，kubelet可选择执行及响应3类probes：
+
++ `livenessProbe`: Indicates whether the Container is running. If the liveness probe fails, the kubelet kills the Container, and the Container is subjected to its restart policy. If a Container does not provide a liveness probe, the default state is `Success`.
++ `readinessProbe`: Indicates whether the Container is ready to service requests. If the readiness probe fails, the endpoints controller removes the Pod’s IP address from the endpoints of all Services that match the Pod. The default state of readiness before the initial delay is `Failure`. If a Container does not provide a readiness probe, the default state is `Success`.
++ `startupProbe`: Indicates whether the application within the Container is started. All other probes are disabled if a startup probe is provided, until it succeeds. If the startup probe fails, the kubelet kills the Container, and the Container is subjected to its restart policy. If a Container does not provide a startup probe, the default state is `Success`.
 
 
