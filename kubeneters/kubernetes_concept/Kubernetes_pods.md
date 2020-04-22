@@ -73,4 +73,4 @@ Container Probe是一个探测器，由`kubelet`执行探测活动，在执行`P
 + `readinessProbe`: Indicates whether the Container is ready to service requests. If the readiness probe fails, the endpoints controller removes the Pod’s IP address from the endpoints of all Services that match the Pod. The default state of readiness before the initial delay is `Failure`. If a Container does not provide a readiness probe, the default state is `Success`.
 + `startupProbe`: Indicates whether the application within the Container is started. All other probes are disabled if a startup probe is provided, until it succeeds. If the startup probe fails, the kubelet kills the Container, and the Container is subjected to its restart policy. If a Container does not provide a startup probe, the default state is `Success`.
 
-
+<span style="border-bottom: 2px solid red; font-weight: bold">在生产环境下，总是应该设置liveness probe，在不设置liveness probe的情况下，kubernetes无法知道你的应用是否处于存活状态</span>
