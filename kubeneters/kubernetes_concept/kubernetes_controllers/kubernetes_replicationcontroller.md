@@ -1,0 +1,5 @@
+- [ReplicationControllers](#replicationcontrollers)
+
+# ReplicationControllers
+
+`ReplicationControllers`保证运行的pods数目与用户配置的pods数目一致，特别的当某一nodes失效后，若nodes上的Pods由`ReplicationControllers`维护，则该pods由`ReplicationControllers`自动在其他node上创建替代的Pods，保证使用该pods的应用服务正常。
