@@ -283,6 +283,42 @@ master-arm-3   Ready      master   4h26m   v1.18.2   10.10.197.101   <none>     
 
 master-arm-1已处于`NoReady`状态，但apiserver仍在继续服务
 
+查看kubernetes的kube-system namespace中的pod状态
+
+```terminal
+kubectl get pods -A -o wide
+AMESPACE     NAME                                   READY   STATUS        RESTARTS   AGE     IP              NODE           NOMINATED NODE   READINESS GATES
+kube-system   coredns-7bd8c79f56-8fxzf               1/1     Terminating   2          7h31m   10.88.0.4       master-arm-1   <none>           <none>
+kube-system   coredns-7bd8c79f56-b4qmm               1/1     Terminating   1          7h31m   10.88.0.5       master-arm-1   <none>           <none>
+kube-system   coredns-7bd8c79f56-cdpsf               1/1     Running       0          3m49s   10.88.0.3       master-arm-2   <none>           <none>
+kube-system   coredns-7bd8c79f56-tvsc7               1/1     Running       0          3m49s   10.88.0.3       master-arm-3   <none>           <none>
+kube-system   etcd-master-arm-1                      1/1     Running       1          7h31m   10.10.197.101   master-arm-1   <none>           <none>
+kube-system   etcd-master-arm-2                      1/1     Running       0          7h23m   10.10.197.99    master-arm-2   <none>           <none>
+kube-system   etcd-master-arm-3                      1/1     Running       1          7h      10.10.197.101   master-arm-3   <none>           <none>
+kube-system   kube-apiserver-master-arm-1            1/1     Running       1          7h31m   10.10.197.101   master-arm-1   <none>           <none>
+kube-system   kube-apiserver-master-arm-2            1/1     Running       0          7h23m   10.10.197.99    master-arm-2   <none>           <none>
+kube-system   kube-apiserver-master-arm-3            1/1     Running       1          7h      10.10.197.101   master-arm-3   <none>           <none>
+kube-system   kube-controller-manager-master-arm-1   1/1     Running       2          7h31m   10.10.197.101   master-arm-1   <none>           <none>
+kube-system   kube-controller-manager-master-arm-2   1/1     Running       1          7h23m   10.10.197.101   master-arm-2   <none>           <none>
+kube-system   kube-controller-manager-master-arm-3   1/1     Running       1          7h      10.10.197.101   master-arm-3   <none>           <none>
+kube-system   kube-proxy-mtlrm                       1/1     Running       1          7h31m   10.10.197.101   master-arm-1   <none>           <none>
+kube-system   kube-proxy-mx7jt                       1/1     Running       1          7h      10.10.197.101   master-arm-3   <none>           <none>
+kube-system   kube-proxy-qbd8q                       1/1     Running       0          7h24m   10.10.197.99    master-arm-2   <none>           <none>
+kube-system   kube-scheduler-master-arm-1            1/1     Running       2          7h31m   10.10.197.101   master-arm-1   <none>           <none>
+kube-system   kube-scheduler-master-arm-2            1/1     Running       0          7h23m   10.10.197.99    master-arm-2   <none>           <none>
+kube-system   kube-scheduler-master-arm-3            1/1     Running       1          7h      10.10.197.101   master-arm-3   <none>           <none>
+```
+
+发现coredns开始在其他控制节点上重启，探测故障的时间与`liveness probe`相关，处于Terminating状态的`Pods`将一直处于该状态，因为关掉节点的kubelet已无法服务将该`Pods`删除。
+
+coredns是一个`kubernetes`的`deployments`控制器，其中容器失效探测时间默认定义如下
+
+```terminal
+Liveness:     http-get http://:8080/health delay=60s timeout=5s period=10s #success=1 #failure=5
+```
+
+即每10s探测一次，5s超时后认为一次失败，连续5次失败即失效，所以总共所需时间75S
+
 #### 恢复master-arm-1
 
 查看keepalived状态
@@ -321,3 +357,29 @@ master-arm-3   Ready      master   4h26m   v1.18.2   10.10.197.101   <none>     
 ```
 
 master-arm-1重新处于`Ready`状态
+
+查看kubernetes Pods状态
+
+```terminal
+kubectl get pods -A -o -wide
+NAMESPACE     NAME                                   READY   STATUS    RESTARTS   AGE     IP              NODE           NOMINATED NODE   READINESS GATES
+kube-system   coredns-7bd8c79f56-cdpsf               1/1     Running   0          42m     10.88.0.3       master-arm-2   <none>           <none>
+kube-system   coredns-7bd8c79f56-tvsc7               1/1     Running   0          42m     10.88.0.3       master-arm-3   <none>           <none>
+kube-system   etcd-master-arm-1                      1/1     Running   2          8h      10.10.197.101   master-arm-1   <none>           <none>
+kube-system   etcd-master-arm-2                      1/1     Running   0          8h      10.10.197.99    master-arm-2   <none>           <none>
+kube-system   etcd-master-arm-3                      1/1     Running   1          7h38m   10.10.197.101   master-arm-3   <none>           <none>
+kube-system   kube-apiserver-master-arm-1            1/1     Running   4          8h      10.10.197.101   master-arm-1   <none>           <none>
+kube-system   kube-apiserver-master-arm-2            1/1     Running   0          8h      10.10.197.99    master-arm-2   <none>           <none>
+kube-system   kube-apiserver-master-arm-3            1/1     Running   1          7h38m   10.10.197.101   master-arm-3   <none>           <none>
+kube-system   kube-controller-manager-master-arm-1   1/1     Running   3          8h      10.10.197.101   master-arm-1   <none>           <none>
+kube-system   kube-controller-manager-master-arm-2   1/1     Running   1          8h      10.10.197.101   master-arm-2   <none>           <none>
+kube-system   kube-controller-manager-master-arm-3   1/1     Running   1          7h38m   10.10.197.101   master-arm-3   <none>           <none>
+kube-system   kube-proxy-mtlrm                       1/1     Running   2          8h      10.10.197.101   master-arm-1   <none>           <none>
+kube-system   kube-proxy-mx7jt                       1/1     Running   1          7h38m   10.10.197.101   master-arm-3   <none>           <none>
+kube-system   kube-proxy-qbd8q                       1/1     Running   0          8h      10.10.197.99    master-arm-2   <none>           <none>
+kube-system   kube-scheduler-master-arm-1            1/1     Running   3          8h      10.10.197.101   master-arm-1   <none>           <none>
+kube-system   kube-scheduler-master-arm-2            1/1     Running   0          8h      10.10.197.99    master-arm-2   <none>           <none>
+kube-system   kube-scheduler-master-arm-3            1/1     Running   1          7h38m   10.10.197.101   master-arm-3   <none>           <none>
+```
+
+可发现两个处于`Terminating`状态的Pods已被删除
