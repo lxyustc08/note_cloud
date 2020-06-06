@@ -515,7 +515,9 @@ deb http://mirrors.ustc.edu.cn/ubuntu-ports eoan-security multiverse
 ## 构建Kubernetes控制平面
 ### 与AMD64架构区别
 1. 与AMD64架构不同，arm 64 v8架构部署Kubernetes控制平面时使用的镜像需为arm64架构镜像，国内阿里云镜像站中并未同步arm64架构容器镜像，在此处使用微软Azure建立的[GCR镜像站](http://mirror.azk8s.cn/help/gcr-proxy-cache.html)作为加速。
+   > 目前Azure GCR镜像站已停止对外开放，只允许Azure内部IP进行访问；
 2. calino网络插件不支持Arm 64架构，只能使用flannel插件，在kubeadm init时需要注意`--pod-network-cidr`参数配置
+   > 1.18.2版本中的calino插件已添加对arm64的支持
 3. dashboard使用的镜像`kubernetesui/metrics-scraper`从1.0.2版本开始才支持Arm 64架构，因此对象描述文件中的`kubernetesui/metrics-scraper`版本需>=1.0.2；
 
 ### 构建步骤
@@ -525,6 +527,7 @@ deb http://mirrors.ustc.edu.cn/ubuntu-ports eoan-security multiverse
    # kubeadm init --pod-network-cidr=10.244.0.0/16 --image-repository="gcr.azk8s.cn/google_containers"
    ```
    此处的`--pod-network-cidr`必须为10.244.0.0/16，为flannel网络插件必须配置的，且不可改变；
+   > 在1.18.2版本中，calino 插件已添加对arm64的支持
 2. 参照AMD64架构下kubeconfig配置文件配置，授予master节点集群访问权限，等待除core dns pod外的pod创建完成，如下所示：
    ```terminal
    NAME                                 READY   STATUS    RESTARTS   AGE
