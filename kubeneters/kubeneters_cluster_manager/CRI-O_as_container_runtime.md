@@ -11,7 +11,7 @@
       - [Security](#security)
   - [CRI-O setup](#cri-o-setup)
     - [CRI-O and Kubernetes Compatibility matrix](#cri-o-and-kubernetes-compatibility-matrix)
-    - [Raspberry Pi 4 CRI-O配置](#raspberry-pi-4-cri-o%e9%85%8d%e7%bd%ae)
+    - [Raspberry Pi 4 CRI-O配置](#raspberry-pi-4-cri-o配置)
       - [Install Dependence](#install-dependence)
       - [Get CRI-O Source Code](#get-cri-o-source-code)
       - [Get conmon](#get-conmon)
@@ -19,6 +19,7 @@
     - [Use CRI-O](#use-cri-o)
       - [Set Up crictl](#set-up-crictl)
       - [Pod action](#pod-action)
+  - [Upgrade CRIO](#upgrade-crio)
 
 # Use CRI-O as Container Runtime
 
@@ -110,7 +111,7 @@ CRI-O由如下组件组成：
 
 ### Raspberry Pi 4 CRI-O配置
 
-本次使用的版本为CRI-O 1.18.0，在该版本使用时需要hugetlb子系统，树莓派4默认的内核中并未开启hugetlb子系统，需重新编译内核。内核编译参考此[链接](../../Linux/Ubuntu_kernel_compile.md)
+本次使用的版本为CRI-O 1.18.0，在该版本使用时需要hugetlb子系统，**已确定为bug，bug详情参考[此链接](https://github.com/cri-o/cri-o/issues/3717)，目前已修复，源码升级后，CRIO版本变更为1.18.1**，树莓派4默认的内核中并未开启hugetlb子系统，需重新编译内核。内核编译参考此[链接](../../Linux/Ubuntu_kernel_compile.md)
 
 本次采用源码构建方式安装
 
@@ -845,4 +846,42 @@ CRI-O使用conmon监控容器相关运行状态，需要安装conmon，否则启
    Removed sandbox 7d3258789e0084aff8a2081814991369df16b4ab6507f771e2737e5ba9bcf003
    crictl pods
    POD ID              CREATED             STATE               NAME                NAMESPACE           ATTEMPT
+   ```
+
+
+## Upgrade CRIO
+
+使用源码方式升级CRIO
+
+1. 获取仓库源码更新
+   
+   ```git
+   git fetch origin release-1.18
+   git merge origin/release-1.18
+   ```
+
+2. 重新编译安装
+   
+   ```
+   make clean
+   make
+   make install
+   make install.systemd
+   ```
+
+3. 重载服务
+   
+   ```
+   systemctl daemon-reload
+   systemctl restart crio
+   ```
+
+4. 查看版本
+   
+   ```
+   crictl version
+   Version:  0.1.0
+   RuntimeName:  cri-o
+   RuntimeVersion:  1.18.1
+   RuntimeApiVersion:  v1alpha1
    ```
