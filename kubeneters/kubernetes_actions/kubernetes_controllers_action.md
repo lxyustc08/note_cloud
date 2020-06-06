@@ -8,6 +8,7 @@
       - [No Specify selector](#no-specify-selector)
       - [Pod Template's labels are inconsistent with selector](#pod-templates-labels-are-inconsistent-with-selector)
     - [Understanding what caused the controller to Create a New Pod](#understanding-what-caused-the-controller-to-create-a-new-pod)
+    - [Replication controllers hands node failture](#replication-controllers-hands-node-failture)
 
 # Kubernetes Controllers Actions
 
@@ -533,3 +534,74 @@ The ReplicationController "test-replicationcontroller-inconsisitent" is invalid:
 当`ReplicationControllers`管理的某一`Pods`被删除后导致集群资源状态发生变化，该变化将通知ReplicationControllers，ReplicationControllers接到通知后检查当前状态实际的Pods数量，发现不一致，进行处理
 
 ![Alt Text](../kubernetes_concept/kubernetes_controllers/kubernetes_controllers_pictures/ReplicaitonControllers_handlers_pods_deletection.jpg)
+
+### Replication controllers hands node failture
+
+查看此时的pods
+
+```terminal
+# kubectl get pods -o wide
+NAME                                                READY   STATUS    RESTARTS   AGE     IP             NODE              NOMINATED NODE   READINESS GATES
+test-replicationcontroller-9fr4x                    1/1     Running   0          4h3m    10.244.1.109   slave-node1-arm   <none>           <none>
+test-replicationcontroller-skdlb                    1/1     Running   0          4h23m   10.244.1.108   slave-node1-arm   <none>           <none>
+test-replicationcontroller-without-selector-dddw5   1/1     Running   0          63m     10.244.1.111   slave-node1-arm   <none>           <none>
+test-replicationcontroller-without-selector-lsjr4   1/1     Running   0          63m     10.244.2.94    slave-node2-arm   <none>           <none>
+test-replicationcontroller-without-selector-vtdlh   1/1     Running   0          63m     10.244.1.110   slave-node1-arm   <none>           <none>
+test-replicationcontroller-xqgmh                    1/1     Running   0          4h23m   10.244.2.93    slave-node2-arm   <none>           <none>
+```
+
+在slave-node2-arm上运行命令
+
+```terminal
+# shutdown -h now
+```
+
+关闭slave-node2-arm
+
+```
+Every 2.0s: kubectl get nodes                                                                                                                                                        master-arm: Sun Apr 26 16:11:13 2020
+NAME              STATUS     ROLES    AGE    VERSION
+master-arm        Ready      master   141d   v1.18.0
+slave-node1-arm   Ready      <none>   141d   v1.18.0
+slave-node2-arm   NotReady   <none>   141d   v1.18.0
+```
+
+slave-node2-arm处于离线状态，等待一定时间后查看pods
+
+```terminal
+Every 2.0s: kubectl get pods -o wide                                                                                                                                                 master-arm: Sun Apr 26 16:16:08 2020
+NAME                                                READY   STATUS        RESTARTS   AGE     IP             NODE              NOMINATED NODE   READINESS GATES
+test-replicationcontroller-9fr4x                    1/1     Running       0          4h13m   10.244.1.109   slave-node1-arm   <none>           <none>
+test-replicationcontroller-skdlb                    1/1     Running       0          4h32m   10.244.1.108   slave-node1-arm   <none>           <none>
+test-replicationcontroller-tc4pg                    1/1     Running       0          6s      10.244.1.113   slave-node1-arm   <none>           <none>
+test-replicationcontroller-without-selector-5h5r6   1/1     Running       0          6s      10.244.1.112   slave-node1-arm   <none>           <none>
+test-replicationcontroller-without-selector-dddw5   1/1     Running       0          72m     10.244.1.111   slave-node1-arm   <none>           <none>Apr 26 16:10:59 2020
+test-replicationcontroller-without-selector-lsjr4   1/1     Terminating   0          72m     10.244.2.94    slave-node2-arm   <none>           <none>
+test-replicationcontroller-without-selector-vtdlh   1/1     Running       0          72m     10.244.1.110   slave-node1-arm   <none>           <none>
+test-replicationcontroller-xqgmh                    1/1     Terminating   0          4h32m   10.244.2.93    slave-node2-arm   <none>           <none>
+```
+
+查看时间，这个过程持续约5min，并可发现`ReplicationControllers`重新在slave-node1-arm上启动两个pods
+
+重新启动slave-node2-arm
+
+```terminal
+NAME              STATUS   ROLES    AGE    VERSION
+master-arm        Ready    master   141d   v1.18.0
+slave-node1-arm   Ready    <none>   141d   v1.18.0
+slave-node2-arm   Ready    <none>   141d   v1.18.0
+```
+
+再次查看pods
+
+```terminal
+NAME                                                READY   STATUS    RESTARTS   AGE     IP             NODE              NOMINATED NODE   READINESS GATES
+test-replicationcontroller-9fr4x                    1/1     Running   0          4h22m   10.244.1.109   slave-node1-arm   <none>           <none>
+test-replicationcontroller-skdlb                    1/1     Running   0          4h41m   10.244.1.108   slave-node1-arm   <none>           <none>
+test-replicationcontroller-tc4pg                    1/1     Running   0          9m21s   10.244.1.113   slave-node1-arm   <none>           <none>
+test-replicationcontroller-without-selector-5h5r6   1/1     Running   0          9m21s   10.244.1.112   slave-node1-arm   <none>           <none>
+test-replicationcontroller-without-selector-dddw5   1/1     Running   0          81m     10.244.1.111   slave-node1-arm   <none>           <none>
+test-replicationcontroller-without-selector-vtdlh   1/1     Running   0          81m     10.244.1.110   slave-node1-arm   <none>           <none>
+```
+
+处于*Terminating*状态的Pods已被删除。
