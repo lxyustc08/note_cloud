@@ -348,6 +348,13 @@ CRI-O使用conmon监控容器相关运行状态，需要安装conmon，否则启
    ]
    ```
 
+   + **配置pause镜像** （1.18.1版本的cri-o，不配置pause镜像，将可能导致kubelet无法创建pods）
+   
+   ```terminal
+   [crio.image]
+   pause_image = "lxyustc.registrydomain.com:5000/google_containers/pause:3.2"
+   ```
+
 5. Start CRI-O
    
    使用如下命令将CRI-O安装为可启动服务
