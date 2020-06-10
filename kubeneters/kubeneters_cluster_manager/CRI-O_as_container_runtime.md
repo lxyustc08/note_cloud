@@ -348,7 +348,7 @@ CRI-O使用conmon监控容器相关运行状态，需要安装conmon，否则启
    ]
    ```
 
-   + **配置pause镜像** （1.18.1版本的cri-o，不配置pause镜像，将可能导致kubelet无法创建pods）
+   + **配置pause镜像** （1.18.1版本的cri-o，不配置pause镜像，将可能导致kubelet无法创建pods，默认pause镜像需科学上网）
    
    ```terminal
    [crio.image]
