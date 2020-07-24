@@ -19,6 +19,7 @@
     - [Use CRI-O](#use-cri-o)
       - [Set Up crictl](#set-up-crictl)
       - [Pod action](#pod-action)
+    - [CRI-O as kubernetes container runtime](#cri-o-as-kubernetes-container-runtime)
   - [Upgrade CRIO](#upgrade-crio)
 
 # Use CRI-O as Container Runtime
@@ -855,6 +856,25 @@ CRI-O使用conmon监控容器相关运行状态，需要安装conmon，否则启
    POD ID              CREATED             STATE               NAME                NAMESPACE           ATTEMPT
    ```
 
+### CRI-O as kubernetes container runtime
+
+在使用CRI-O作为kubernetes的底层容器运行时时，由于kubernetes仅针对docker进行了`cgroup`的自动探测，此时，若要采用`systemd`作为`cgroup`，则需要手动指定`cgroup`配置
+
+修改`kubelet`配置文件`/var/lib/kubelet/config.yaml`
+
+在行
+
+```yaml
+kind: KubeletConfiguration
+```
+
+后
+
+添加如下内容
+
+```yaml
+cgroupDriver: systemd
+```
 
 ## Upgrade CRIO
 
