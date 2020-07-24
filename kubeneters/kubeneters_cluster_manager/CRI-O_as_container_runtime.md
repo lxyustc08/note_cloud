@@ -20,6 +20,7 @@
       - [Set Up crictl](#set-up-crictl)
       - [Pod action](#pod-action)
     - [CRI-O as kubernetes container runtime](#cri-o-as-kubernetes-container-runtime)
+      - [相关bug](#相关bug)
   - [Upgrade CRIO](#upgrade-crio)
 
 # Use CRI-O as Container Runtime
@@ -875,6 +876,18 @@ kind: KubeletConfiguration
 ```yaml
 cgroupDriver: systemd
 ```
+
+#### 相关bug
+
+1. Kubernetes 1.18.6 与 CRI-O 1.18.3下，此时，Kubernetes不能自动探测CRI-O使用的cgroup，除了在配置文件`/var/lib/kubelet/config.yaml`中指定`cgroup`的配置外，还需手动指定`kubelet`服务使用的cgroup，在`kubelet.service`配置文件下添加配置文件`11-cgroup.conf`，`/etc/systemd/system/kubelet.service.d/11-cgroups.conf`，若不进行上述配置，将报 *Failed to get kubelets cgroup: cpu and memory cgroup hierarchy not unified. Cpu:/, memory: /system.slice/kubelet.service.* 错误
+   
+   ```conf
+   [Service]
+   CPUAccounting=true
+   MemoryAccounting=true
+   ```
+
+2. ARM64架构下，Kubernetes 1.18.6 与 CRI-O 1.18.3下，由于ARM64架构CPU缺乏1 2级缓存，因此kubelet运行时会报出错误 *failed to get cache information for node 0: open /sys/devices/system/cpu/cpu0/cache: no such file or directory* 基于目前观察并未有相关影响。
 
 ## Upgrade CRIO
 
