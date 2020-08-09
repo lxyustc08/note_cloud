@@ -877,6 +877,20 @@ kind: KubeletConfiguration
 cgroupDriver: systemd
 ```
 
+#### CRI-O network
+
+对于controller plane而言，其所需的`kube-scheduler`, `kube-controller-manager`, `kube-apiserver`, `etcd`等组件部署时并不需要容器网络，因此在部署上述相关组件前`/etc/cni/net.d/`文件夹下内容可以为空
+
+#### CRI-O flannel
+
+kubernetes使用cni插件形式处理pods间网络问题，按照cni规定，在文件夹`/etc/cni/net.d/`下以字典序排列，顺序靠前的先生效
+
+*If there are multiple CNI configuration files in the directory, the kubelet uses the configuration file that comes first by name in lexicographic order.*
+
+[参考此处](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/#cni)
+
+因此，若要使用flannel插件，需将flannel插件的文件名称靠前排列
+
 #### 相关bug
 
 1. Kubernetes 1.18.6 与 CRI-O 1.18.3下，此时，Kubernetes不能自动探测CRI-O使用的cgroup，除了在配置文件`/var/lib/kubelet/config.yaml`中指定`cgroup`的配置外，还需手动指定`kubelet`服务使用的cgroup，在`kubelet.service`配置文件下添加配置文件`11-cgroup.conf`，`/etc/systemd/system/kubelet.service.d/11-cgroups.conf`，若不进行上述配置，将报 *Failed to get kubelets cgroup: cpu and memory cgroup hierarchy not unified. Cpu:/, memory: /system.slice/kubelet.service.* 错误
