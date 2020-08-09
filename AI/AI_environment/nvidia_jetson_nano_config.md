@@ -143,4 +143,9 @@ Result = PASS
    gateway XX.XX.XX.XX
    ```
 
+5. hosts配置，在hosts文件中添加自建镜像仓库解析地址
+   
+   ```
+   10.10.197.96    lxyustc.registrydomain.com
+   ```
 
