@@ -102,34 +102,34 @@ Result = PASS
 
 2. 关闭memory swap分区，Jetson Nano使用`zram`实现内存交换分区，在/etc/systemd/文件夹下存在名称为`nvzramconfig.sh`的脚本，该脚本内容如下。该脚本在系统启动时运行，创建zram分区，将该脚本移除即可关闭swap分区
 
-```bash
-#!/bin/bash
-#
-# Copyright (c) 2019, NVIDIA CORPORATION.  All rights reserved.
-#
+   ```bash
+   #!/bin/bash
+   #
+   # Copyright (c) 2019, NVIDIA CORPORATION.  All rights reserved.
+   #
 
-NRDEVICES=$(grep -c ^processor /proc/cpuinfo | sed 's/^0$/1/')
-if modinfo zram | grep -q ' zram_num_devices:' 2>/dev/null; then
-        MODPROBE_ARGS="zram_num_devices=${NRDEVICES}"
-elif modinfo zram | grep -q ' num_devices:' 2>/dev/null; then
-        MODPROBE_ARGS="num_devices=${NRDEVICES}"
-else
-        exit 1
-fi
-modprobe zram "${MODPROBE_ARGS}"
+   NRDEVICES=$(grep -c ^processor /proc/cpuinfo | sed 's/^0$/1/')
+   if modinfo zram | grep -q ' zram_num_devices:' 2>/dev/null; then
+           MODPROBE_ARGS="zram_num_devices=${NRDEVICES}"
+   elif modinfo zram | grep -q ' num_devices:' 2>/dev/null; then
+           MODPROBE_ARGS="num_devices=${NRDEVICES}"
+   else
+           exit 1
+   fi
+   modprobe zram "${MODPROBE_ARGS}"
 
-# Calculate memory to use for zram (1/2 of ram)
-totalmem=`LC_ALL=C free | grep -e "^Mem:" | sed -e 's/^Mem: *//' -e 's/  *.*//'`
-mem=$((("${totalmem}" / 2 / "${NRDEVICES}") * 1024))
+   # Calculate memory to use for zram (1/2 of ram)
+   totalmem=`LC_ALL=C free | grep -e "^Mem:" | sed -e 's/^Mem: *//' -e 's/  *.*//'`
+   mem=$((("${totalmem}" / 2 / "${NRDEVICES}") * 1024))
 
-# initialize the devices
-for i in $(seq "${NRDEVICES}"); do
-        DEVNUMBER=$((i - 1))
-        echo "${mem}" > /sys/block/zram"${DEVNUMBER}"/disksize
-        mkswap /dev/zram"${DEVNUMBER}"
-        swapon -p 5 /dev/zram"${DEVNUMBER}"
-done
-```
+   # initialize the devices
+   for i in $(seq "${NRDEVICES}"); do
+           DEVNUMBER=$((i - 1))
+           echo "${mem}" > /sys/block/zram"${DEVNUMBER}"/disksize
+           mkswap /dev/zram"${DEVNUMBER}"
+           swapon -p 5 /dev/zram"${DEVNUMBER}"
+   done
+   ```
 
 3. 配置软件源，与其他类似将所需的`kubernetes`软件源配置好即可；
 
