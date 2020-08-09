@@ -590,3 +590,14 @@ nvidia官方仅提供AMD64与PPC64LE官方容器镜像，未提供ARM64镜像，
      Normal   Created           2s         kubelet, worker-gpu-node1  Created container pod2-ctr
      Normal   Started           2s         kubelet, worker-gpu-node1  Started container pod2-ctr
    ```
+
+## 容器运行时要求
+
+目前nvidia官方并未推出arm64的k8s-device-plugin插件，经过修改，绕过NVML后可实现k8s-device-plugin arm64下的兼容性要求，但对于docker运行时有要求，具体如下：
+
+|deb package|version|
+|:---:|:---:|
+|libnvidia-container-tools|0.9.0~beta.1|
+|nvidia-container-runtime|3.1.0-1|
+|nvidia-container-toolkit|1.0.1-1|
+|nvidia-docker2|2.2.0-1|
