@@ -9,20 +9,30 @@
 1. 安装nvidia-docker-runtime
 
 ```
-apt install nvidia-docker-runtime
+# distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+# curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+# curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | # # sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+# sudo apt-get update && sudo apt-get install -y nvidia-docker2
+# sudo systemctl restart docker
 ```
 
 2. 配置docker engine，在/etc/docker/daemon.json中做如下配置
 
 ```json
-"runtime": {
+"runtime": { //runtime 配置contianer runtime为nvidia-contianer-runtime
         "nvidia": {
          "path": "/usr/bin/nvidia-container-runtime",
          "runtimeArgs": []
      } 
 }
-
-"default-runtime": "nvidia"
+"log-driver": "json-file", 
+"log-opts": {
+         "max-size": "100m"
+},
+"default-runtime": "nvidia", //作用同"runtime"属性类似
+"exec-opts": ["native.cgroupdriver=systemd"], //配置cgroup为systemd
+"registry-mirrors": ["https://y6h4kc1t.mirror.aliyuncs.com", "http://f1361db2.m.daocloud.io"],
+"insecure-registries" : ["lxyustc.registrydomain.com:5000"] //配置自建镜像仓库
 ```
 
 3. 重启docker daemon
@@ -84,7 +94,13 @@ Result = PASS
 
 ## Jetson Nano 配置
 
-1. 关闭memory swap分区，Jetson Nano使用`zram`实现内存交换分区，在/etc/systemd/文件夹下存在名称为`nvzramconfig.sh`的脚本，该脚本内容如下。该脚本在系统启动时运行，创建zram分区，将该脚本移除即可关闭swap分区
+1. 关闭图形化界面，仅作为工作节点加入，无需图形化界面
+   
+   ```
+   $ sudo systemctl set-default multi-user.target
+   ```
+
+2. 关闭memory swap分区，Jetson Nano使用`zram`实现内存交换分区，在/etc/systemd/文件夹下存在名称为`nvzramconfig.sh`的脚本，该脚本内容如下。该脚本在系统启动时运行，创建zram分区，将该脚本移除即可关闭swap分区
 
 ```bash
 #!/bin/bash
@@ -115,6 +131,16 @@ for i in $(seq "${NRDEVICES}"); do
 done
 ```
 
-2. 配置软件源，与其他类似将所需的`kubernetes`软件源配置好即可；
+3. 配置软件源，与其他类似将所需的`kubernetes`软件源配置好即可；
+
+4. IP配置，Jetson Nano的操作系统基于Ubuntu 18.04.4 LTS，其IP配置文件位于`/etc/network/interfaces.d`中，在此文件夹下配置静态IP即可，如下格式：
+   
+   ```
+   auto eth0
+   iface eth0 inet static
+   address XX.XX.XX.XX
+   netmask XX.XX.XX.XX
+   gateway XX.XX.XX.XX
+   ```
 
 
