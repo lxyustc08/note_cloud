@@ -487,7 +487,7 @@ deb http://mirrors.ustc.edu.cn/ubuntu-ports eoan-security multiverse
                         "max-size": "100m"
            },
            "storage-driver": "overlay2",
-           "registry-mirrors": ["https://dockerhub.azk8s.cn"]
+           "registry-mirrors": ["https://dockerhub.azk8s.cn"] // https://dockerhub.azk8s.cn 镜像站已经停止对外服务
    }
    ```  
    该配置配置镜像加速器，cgroupdriver等参数，与AMD64架构类似；
