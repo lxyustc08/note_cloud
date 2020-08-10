@@ -8,6 +8,7 @@
   - [Testing](#testing)
     - [基本资源调度验证](#基本资源调度验证)
     - [资源竞争验证](#资源竞争验证)
+  - [容器运行时要求](#容器运行时要求)
 
 # Join GPU Node To Kubernetes Cluster
 
@@ -21,6 +22,7 @@
 |:---:|:---:|:---:|:---:|
 |10.10.197.101| kubernetes controller plane| ARM 64 X 3|master-arm-1</br>master-arm-2</br>master-arm-3|
 |10.10.197.94|gpu node|ARM 64 with nvidia GPU (Jetson nano)|worker-gpu-node1|
+|10.10.197.93|gpu node|ARM 64 with nvidia GPU (Jetson nano)|worker-gpu-node2|
 
 ## Procedures
 
