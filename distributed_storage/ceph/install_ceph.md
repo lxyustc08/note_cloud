@@ -62,6 +62,8 @@ deploy node上部署ceph-deploy工具，对于python 3.8以上的版本，由于
 |10.10.197.201|worker-amd64-gpuceph-node2|amd64|ubuntu 20.04 LTS|
 |10.10.197.202|worker-amd64-gpuceph-node3|amd64|ubuntu 20.04 LTS|
 
+***
+
 ### osd node 
 
 |IP|hostname|arch|OS|partition|
