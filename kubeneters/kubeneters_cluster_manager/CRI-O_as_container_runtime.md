@@ -20,6 +20,8 @@
       - [Set Up crictl](#set-up-crictl)
       - [Pod action](#pod-action)
     - [CRI-O as kubernetes container runtime](#cri-o-as-kubernetes-container-runtime)
+      - [CRI-O network](#cri-o-network)
+      - [CRI-O flannel](#cri-o-flannel)
       - [相关bug](#相关bug)
   - [Upgrade CRIO](#upgrade-crio)
 
@@ -194,15 +196,26 @@ rdma
      libsystemd-dev \
      libselinux1-dev \
      pkg-config \
-     go-md2man \
-     cri-o-runc \
      libudev-dev \
      software-properties-common \
      gcc \
      make
      ```
 
+> Note，从一致性角度考虑，对于`runc`而言，最好使用源码安装的方式进行编译安装`runc`，不建议直接安装cri-o-runc
+
+> 1. （可选）安装seccomp支持（libseccomp-dev为ubuntu下的包）
+>     ```
+>     $ sudo apt install libseccomp-dev
+>     ```
+> 2.  编译，默认情况下，run编译时，`seccomp`, `selinux`, `apparmor`默认开启，nokmem不开启
+>     ```
+>     $ make & make install 
+>     ```
+
 #### Get CRI-O Source Code
+
+***
 
 ```terminal
 git clone -b release-1.18 https://github.com/cri-o/cri-o.git
@@ -223,17 +236,17 @@ CRI-O使用conmon监控容器相关运行状态，需要安装conmon，否则启
    ```terminal
    cd conmon
    make
-   make install
+   sudo make install
    ```
 
 #### Install CRI-O
 
-1. Build
+1. Build，添加seccomp apparmor编译支持
    
    ```terminal
    cd cri-o
-   make
-   make install
+   make BUILDTAGS='seccomp apparmor'
+   sudo make install
    ```
 
 2. 查看安装版本
@@ -291,7 +304,7 @@ CRI-O使用conmon监控容器相关运行状态，需要安装conmon，否则启
    cp bin/* /opt/cni/bin/
    ```
 
-4. Config CRI-O
+4. Config CRI-O，使用非root用户的时候，使用sudo运行make权限时可能出现找不到go的情况，此时需要使用sudo -E，保持环境变量
    
    运行命令生成CRI-O配置文件，配置文件的合法值参考[链接](https://github.com/cri-o/cri-o/blob/release-1.18/docs/crio.conf.5.md)
    
@@ -388,19 +401,55 @@ CRI-O使用conmon监控容器相关运行状态，需要安装conmon，否则启
    May 10 17:46:00 slave-node2-arm crio[2291]: time="2020-05-10 17:46:00.546847354+08:00" level=info msg="Update default CNI network name to cbr0"
    ```
 
+7. 查看crio.sock状态
+   
+   ```terminal
+   $ sudo curl -v --unix-socket /var/run/crio/crio.sock http://localhost/info | jq
+   {
+     "storage_driver": "",
+     "storage_root": "/var/lib/containers/storage",
+     "cgroup_driver": "systemd",
+     "default_id_mappings": {
+       "uids": [
+         {
+           "container_id": 0,
+           "host_id": 0,
+           "size": 4294967295
+         }
+       ],
+       "gids": [
+         {
+           "container_id": 0,
+           "host_id": 0,
+           "size": 4294967295
+         }
+       ]
+     }
+   }
+   ```
+
 ### Use CRI-O
 
 通过命令行工具crictl使用CRI-O
 
 #### Set Up crictl
 
-1. 通过如下命令获取crictl
+1. **（存在bug）过如下命令获取crictl**
    
    ```terminal
    go get github.com/kubernetes-sigs/cri-tools/cmd/crictl
    ```
 
-   crictl命令行工具安装至`$GOPATH/bin`路径下
+   更改如下方式处理
+
+   ```terminal
+   VERSION="v1.19.0"
+   wget https://github.com/kubernetes-sigs/cri-tools/releases/download/$VERSION/crictl-$VERSION-linux-amd64.tar.gz
+   sudo tar zxvf crictl-$VERSION-linux-amd64.tar.gz -C /usr/local/bin
+   ```
+
+   ~~crictl命令行工具安装至`$GOPATH/bin`路径下~~，安装在/usr/local/bin下
+
 
 2. 设置crictl命令行工具配置，可通过编辑/etc/crictl.yaml文件或设置环境变量`CONTAINER_RUNTIME_ENDPOINT`进行。
    
