@@ -1,4 +1,4 @@
-- [Join GPU Node To Kubernetes Cluster](#join-gpu-node-to-kubernetes-cluster)
+- [Join GPU Node Jetson Nano To Kubernetes Cluster](#join-gpu-node-jetson-nano-to-kubernetes-cluster)
   - [Overview](#overview)
   - [Environment](#environment)
   - [Procedures](#procedures)
@@ -10,7 +10,7 @@
     - [资源竞争验证](#资源竞争验证)
   - [容器运行时要求](#容器运行时要求)
 
-# Join GPU Node To Kubernetes Cluster
+# Join GPU Node Jetson Nano To Kubernetes Cluster
 
 ## Overview
 
