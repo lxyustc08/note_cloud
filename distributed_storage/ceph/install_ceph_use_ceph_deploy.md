@@ -21,6 +21,8 @@
 
 **ceph-deploy使用hostname作为节点名，在deploy node上配置hosts时需要与各个节点的hostname保持一致**
 
+**ceph-depoly已被废除，后续版本官方不再支持**
+
 ## Environment
 
 ***
