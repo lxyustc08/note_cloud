@@ -14,6 +14,7 @@
       - [ADD more monitors](#add-more-monitors)
       - [ADD RGW INSTANCE](#add-rgw-instance)
     - [TEST](#test)
+  - [Remove Ceph cluster](#remove-ceph-cluster)
 
 # Install Ceph Use Ceph Deploy
 
@@ -575,3 +576,12 @@ rgw frontends = civetweb port=80
    # sudo ceph osd pool rm testpool
    Error EPERM: WARNING: this will *PERMANENTLY DESTROY* all data stored in pool testpool.  If you are *ABSOLUTELY CERTAIN* that is what you want, pass the pool name *twice*, followed by --yes-i-really-really-mean-it.
    ```
+
+## Remove Ceph cluster
+
+使用如下命令摧毁ceph cluster
+
+```
+ceph-deploy purge worker-amd64-gpuceph-node1 worker-amd64-gpuceph-node2 worker-amd64-gpuceph-node3
+ceph-deploy purgedata worker-amd64-gpuceph-node1 worker-amd64-gpuceph-node2 worker-amd64-gpuceph-node3
+```
