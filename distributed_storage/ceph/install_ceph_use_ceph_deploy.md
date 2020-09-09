@@ -1,4 +1,4 @@
-- [Install Ceph](#install-ceph)
+- [Install Ceph Use Ceph Deploy](#install-ceph-use-ceph-deploy)
   - [Important Things](#important-things)
   - [Environment](#environment)
     - [deploy node](#deploy-node)
@@ -15,11 +15,11 @@
       - [ADD RGW INSTANCE](#add-rgw-instance)
     - [TEST](#test)
 
-# Install Ceph
+# Install Ceph Use Ceph Deploy
 
 ## Important Things
 
-**ceph使用hostname作为节点名，在deploy node上配置hosts时需要与各个节点的hostname保持一致**
+**ceph-deploy使用hostname作为节点名，在deploy node上配置hosts时需要与各个节点的hostname保持一致**
 
 ## Environment
 
