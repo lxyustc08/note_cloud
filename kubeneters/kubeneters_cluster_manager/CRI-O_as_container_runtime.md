@@ -11,6 +11,7 @@
       - [Security](#security)
   - [CRI-O setup](#cri-o-setup)
     - [CRI-O and Kubernetes Compatibility matrix](#cri-o-and-kubernetes-compatibility-matrix)
+    - [前期准备](#前期准备)
     - [Raspberry Pi 4 CRI-O配置](#raspberry-pi-4-cri-o配置)
       - [Install Dependence](#install-dependence)
       - [Get CRI-O Source Code](#get-cri-o-source-code)
@@ -112,6 +113,29 @@ CRI-O由如下组件组成：
 |CRI-O 1.17.x - release-1.17|Kubernetes 1.17 branch, v1.17.x|=|
 |CRI-O 1.18.x - release-1.18|Kubernetes 1.18 branch, v1.18.x|=|
 |CRI-O HEAD - master|Kubernetes master branch|√|
+
+### 前期准备
+
+1. 挂载overlay与br_netfilter模块
+   
+   ```terminal
+   $ sudo modprobe overlay
+   sudo modprobe br_netfilter
+   ```
+
+2. 配置网络转发规则，编辑文件`/etc/sysctl.d/99-kubernetes-cri.conf`
+   
+   ```terminal
+   net.bridge.bridge-nf-call-iptables  = 1
+   net.ipv4.ip_forward                 = 1
+   net.bridge.bridge-nf-call-ip6tables = 1
+   ```
+
+3. 使网络转发规则生效
+   
+   ```terminal
+   $ sudo sysctl --system
+   ```
 
 ### Raspberry Pi 4 CRI-O配置
 
@@ -434,7 +458,7 @@ CRI-O使用conmon监控容器相关运行状态，需要安装conmon，否则启
 
 #### Set Up crictl
 
-1. **（存在bug）过如下命令获取crictl**
+1. **（存在bug）通过如下命令获取crictl**
    
    ```terminal
    go get github.com/kubernetes-sigs/cri-tools/cmd/crictl
