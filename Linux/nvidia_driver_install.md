@@ -8,7 +8,7 @@ Linux下Nvidia驱动有多种方式
 
 对于Ubuntu发行版而言，可使用Ubuntu Driver安装相关驱动
 
-> 不建议Ubuntu Server采用此种方式进行
+> **不建议Ubuntu Server采用此种方式进行**
 
 1. 安装Ubuntu Driver package
    
@@ -50,4 +50,10 @@ Linux下Nvidia驱动有多种方式
    $ sudo apt install gcc
    $ sudo apt install pkg-config
    $ sudo apt install make
+   ```
+
+4. 运行安装脚本
+   
+   ```
+   $ sudo bash NVIDIA-Linux-x86_64-450.66.run
    ```
