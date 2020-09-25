@@ -149,3 +149,76 @@ Result = PASS
    10.10.197.96    lxyustc.registrydomain.com
    ```
 
+6. 修改内核，默认任何不开启ceph与rbd以及高版本nfs协议支持需要进行内核自定义
+   
+   1. 获取jetson nano内核源码`https://developer.download.nvidia.com/embedded/L4T/r32_Release_v4.3/sources/T210/public_sources.tbz2?K9uQ3OogAOZmjixngXYGmkW8hVqWc2Uq1_tn_MFPh-zvZT1GAiDyVDrNGPTP5G5Uk5_CreJFvfBfzxRjZHZp-0YoeSLeZpftqb1tymjmIwFAFqGAUdBGGklmJK_fPKY_DUJ79d5EV0VDm5xNYtOj7mILf06xi14pO478Cy8`
+   2. 解压
+   
+   ```
+   # tar -xvf public_sources.tbz2
+   # cp Linux_for_Tegra/source/public/kernel_src.tbz2 ~
+   # tar -xf kernel_src.tbz2
+   ```
+
+   3. 配置内核，图形化界面配置需要安装libncurses-dev库，打开`rbd`,`cephfs`以及`nfs高版本协议`支持
+   
+   ```
+   # zcat /proc/config.gz > .config
+   # make menuconfig
+   ```
+
+   4. 编译内核，注此处可指定-C选项，指定编译的模块使用的内核源码位置，相应的modules_install时会将内核安装到`/lib/modules`指定文件夹下，详细信息参考`https://www.kernel.org/doc/Documentation/kbuild/modules.txt`
+   
+   ```
+   # make -j4 Image
+   # make -j4 modules
+   ```
+
+   5. 安装modules
+   
+   ```
+   # make modules_install
+   ```
+
+   6. jetson nano使用的时extlinux作为bootloader而非grub，编译内核完成后将内核Image移动到`/boot`下
+   
+   ```
+   # cp arch/arm64/boot/Image /boot/
+   # reboot
+   ```
+
+   7. 查看模块信息，确认已安装
+   
+   ```
+   # modinfo rbd
+   filename:       /lib/modules/4.9.140/kernel/drivers/block/rbd.ko
+   license:        GPL
+   description:    RADOS Block Device (RBD) driver
+   author:         Jeff Garzik <jeff@garzik.org>
+   author:         Yehuda Sadeh <yehuda@hq.newdream.net>
+   author:         Sage Weil <sage@newdream.net>
+   author:         Alex Elder <elder@inktank.com>
+   depends:        libceph
+   intree:         Y
+   vermagic:       4.9.140 SMP preempt mod_unload modversions aarch64
+   parm:           single_major:Use a single major number for all rbd devices (default: false) (bool)
+   # modinfo ceph
+   filename:       /lib/modules/4.9.140/kernel/fs/ceph/ceph.ko
+   license:        GPL
+   description:    Ceph filesystem for Linux
+   author:         Patience Warnick <patience@newdream.net>
+   author:         Yehuda Sadeh <yehuda@hq.newdream.net>
+   author:         Sage Weil <sage@newdream.net>
+   alias:          fs-ceph
+   depends:        libceph
+   intree:         Y
+   vermagic:       4.9.140 SMP preempt mod_unload modversions aarch64
+   # modinfo nfsv4
+   filename:       /lib/modules/4.9.140/kernel/fs/nfs/nfsv4.ko
+   license:        GPL
+   depends:
+   intree:         Y
+   vermagic:       4.9.140 SMP preempt mod_unload modversions aarch64
+   parm:           layoutstats_timer:uint
+   ```
+
