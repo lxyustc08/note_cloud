@@ -13,6 +13,14 @@
     - [DEPLOY ADDTIONAL MGR](#deploy-addtional-mgr)
       - [USE CEPH DASHBOARD](#use-ceph-dashboard)
   - [CEPH ORCH USAGE](#ceph-orch-usage)
+  - [TEST](#test)
+    - [CEPH FS TEST](#ceph-fs-test)
+      - [CEPH CLUSTER OPERATIONS](#ceph-cluster-operations)
+      - [CEPH CLIENT OPERATIONS](#ceph-client-operations)
+    - [CEPH NFS TEST](#ceph-nfs-test)
+      - [Procedure](#procedure-1)
+    - [RBD Test](#rbd-test)
+      - [可能存在的bug](#可能存在的bug)
 
 # Install Ceph Use Cephadm
 
@@ -375,3 +383,266 @@ ceph dashboard现在成为mgr的内置组件，在启动https时，默认情况�
 ## CEPH ORCH USAGE
 
 从更本质上来说，cephadm作为ceph orch的后端，前端命令仍然使用ceph orch，相关指令参考此链接[ceph orch cli](https://docs.ceph.com/docs/master/mgr/orchestrator/)
+
+## TEST
+
+### CEPH FS TEST
+
+#### CEPH CLUSTER OPERATIONS
+
+本节对ceph fs进行测试，验证ceph fs服务是否正常，步骤如下
+
+> **注：本节所有的命令均在容器中执行**
+
+1. 创建fs volume
+   
+   ```
+   # ceph fs volume create kubernetes-fs
+   # ceph orch ls
+   NAME                  RUNNING  REFRESHED  AGE  PLACEMENT                                                                                 IMAGE NAME                                     IMAGE ID
+   alertmanager              1/1  107s ago   6d   count:1                                                                                   prom/alertmanager:v0.20.0                      0881eb8f169f
+   crash                     4/4  110s ago   6d   *                                                                                         lxyustc.registrydomain.com:5000/ceph/ceph:v15  852b28cb10de
+   grafana                   1/1  107s ago   6d   count:1                                                                                   ceph/ceph-grafana:latest                       87a51ecf0b1c
+   mds.kubernetes-fs         2/2  110s ago   3d   count:2                                                                                   lxyustc.registrydomain.com:5000/ceph/ceph:v15  852b28cb10de
+   mgr                       3/3  107s ago   4d   label:mon                                                                                 lxyustc.registrydomain.com:5000/ceph/ceph:v15  852b28cb10de
+   mon                       3/3  107s ago   5d   label:mon                                                                                 lxyustc.registrydomain.com:5000/ceph/ceph:v15  852b28cb10de
+   node-exporter             4/4  110s ago   6d   *                                                                                         mix                                            e5a616e4b9cf
+   osd.19                   21/0  110s ago   -    <unmanaged>                                                                               lxyustc.registrydomain.com:5000/ceph/ceph:v15  852b28cb10de
+   prometheus                3/3  107s ago   4d   worker-amd64-gpuceph-node1,worker-amd64-gpuceph-node2,worker-amd64-gpuceph-node3          prom/prometheus:v2.18.1                        de242295e225
+   rgw.kubernetes.zone1      3/3  107s ago   3d   count:3 worker-amd64-gpuceph-node1,worker-amd64-gpuceph-node2,worker-amd64-gpuceph-node3  lxyustc.registrydomain.com:5000/ceph/ceph:v15  852b28cb10de
+   ```
+
+   > ceph fs命令创建一个CephFS file system以及存储数据和元数据的pools
+   > ![pictures](../ceph_pictures/cephfs存储池.png)
+   > 同时ceph fs命令会尝试使用ceph-mgr orchestrator module部署所需的MDS服务`mds.kubernetes-fs `
+  
+2. 查看此时的fs volume列表
+   
+   ```
+   # ceph fs volume ls
+   [
+    {
+        "name": "kubernetes-fs"
+    }
+   ]
+   ```
+
+#### CEPH CLIENT OPERATIONS
+
+在使用cephfs filesystem之前需获取ceph cluster的集群配置，创建可使用cephfs的用户，并获取用户的认证密钥
+
+> 注：
+> 1. 本节操作在客户端中进行
+> 2. 本节客户端直接使用Linux kernel中的cephfs驱动进行挂载
+
+1. 获取ceph cluster的集群配置
+   
+   ```
+   $ ssh root@10.10.197.201 "sudo ceph config generate-minimal-conf" | sudo tee /etc/ceph/ceph.conf
+   ```
+
+2. 生成kubernetes fs客户端账号，并获取访问密钥
+   
+   ```
+   $ ssh root@10.10.197.201 "ceph fs authorize kubernetes-fs client.kubernetes / rw" | sudo tee /etc/ceph/ceph.client.kubernetes.keyring
+   ```
+
+3. 修改访问密钥权限
+   
+   ```
+   $ sudo chmod 600 /etc/ceph/ceph.client.kubernetes.keyring
+   ```
+
+4. 创建cephfs filesystem挂载点
+   
+   ```
+   $ sudo mkdir -p /mnt/remotecephfs/
+   ```
+
+5. 挂载cephfs filesystem
+   
+   ```
+   $ sudo mount -t ceph :/ /mnt/remotecephfs -o name=kubernetes
+   ```
+
+6. 查看挂载状态
+   
+   ```
+   $ sudo df -h
+   Filesystem                                                  Size  Used Avail Use% Mounted on
+   udev                                                         16G     0   16G   0% /dev
+   tmpfs                                                       3.2G  2.9M  3.2G   1% /run
+   /dev/mapper/vgmaster--x86-root                              457G   34G  400G   8% /
+   tmpfs                                                        16G  8.0K   16G   1% /dev/shm
+   tmpfs                                                       5.0M     0  5.0M   0% /run/lock
+   tmpfs                                                        16G     0   16G   0% /sys/fs/cgroup
+   /dev/sda1                                                   511M  7.8M  504M   2% /boot/efi
+   overlay                                                     457G   34G  400G   8% /var/lib/docker/overlay2/920ee8e7b0c8de639a97f9360e95e7adafe7753f56cc80961c2bb854d8ef3f4b/merged
+   shm                                                          64M     0   64M   0% /var/lib/docker/containers/30e1f5d23239be2aefd721cef0ea7678d7a0e099ad69b950b52d6b7f878fdba6/mounts/shm
+   overlay                                                     457G   34G  400G   8% /var/lib/docker/overlay2/1a88c8d2fc9b889397608ac4f5623033f8ccf9cb66404556ba874c87931f5bbf/merged
+   tmpfs                                                       3.2G     0  3.2G   0% /run/user/0
+   10.10.197.200:6789,10.10.197.201:6789,10.10.197.202:6789:/  564G  228M  564G   1% /mnt/remotecephfs
+   ```
+
+7. 登陆ceph dashboard，查看kubernetes-fs客户端状态
+   
+   ![goolge](../ceph_pictures/cephfs客户端.png)
+
+8. 向挂载点写入测试文件
+   
+   ```
+   $ echo "hello world" > hello 
+   $ cat hello
+   hello world
+   ```
+
+> 注：上述挂载命令通过`/etc/ceph/ceph.conf`以及`/etc/ceph/ceph.client.kubernetes.keyring`挂载cephfs无需指定集群信息与验证密钥存储位置，原因在于通过cephfs包安装了`mount.ceph`工具，该工具自动读取相关配置文件，因此若未安装cephfs包时需要手动指定相关信息
+> 挂载cephfs的命令格式如下：
+> ```
+> mount -t ceph {device-string}:{path-to-mounted} {mount-point} -o {key-value-args} {other-args}
+> ```
+> 对于上述测试过程，手动指定的命令测试如下：
+> ```
+> mount -t ceph 10.10.197.200:6789,10.10.197.201:6789,10.10.197.202:6789:/ /mnt/remotecephfs -o name=kubernetes,secret=AQBOS1tfcdNwLxAAjL8l9zUpaCd8OkZIhL0RDA==
+> ```
+
+### CEPH NFS TEST
+
+Ceph FS可通过`Ganesha`使用NFS协议将其导出为NFS服务，在ceph `15.2.5`版本后，添加新的volume nfs接口，可通过该接口实现NFS资源的统一管理
+
+> **注：本处命令全部在容器环境中使用**
+
+#### Procedure
+
+1. 创建名称为ceph-fs的nfs集群
+   
+   ```
+   ceph nfs cluster create cephfs ceph-fs
+   ```
+
+2. 导出nfs服务
+   
+   ```
+   ceph nfs export create cephfs kubernetes-fs  ceph-fs /mnt/nfs --path=/test
+   ```
+
+3. 在客户端中挂载nfs
+   
+   ```
+   $ sudo mount -t nfs -o port=2049 10.10.197.201:/mnt/nfs /mnt/remotecephfs/
+   ```
+
+4. 测试
+   
+   ```
+   $ cd /mnt/remotecephfs
+   $ cat hello 
+   hello world from hello
+   $ echo "test 1" > test1
+   $ cat test1
+   test 1
+   ```
+
+### RBD Test
+
+已创建名称为kubernetes的osd pools，并在kubernetes pools中创建名称为test-image的Image
+
+> **注：查看信息命令在容器环境下运行**
+
+```
+# rbd list kubernetes
+test-image
+# rbd info kubernetes/test-image
+rbd image 'test-image':
+        size 10 GiB in 2560 objects
+        order 22 (4 MiB objects)
+        snapshot_count: 0
+        id: 14bdd8fce002a
+        block_name_prefix: rbd_data.14bdd8fce002a
+        format: 2
+        features: layering
+        op_features:
+        flags:
+        create_timestamp: Wed Sep 23 07:06:14 2020
+        access_timestamp: Wed Sep 23 07:06:14 2020
+        modify_timestamp: Wed Sep 23 07:06:14 2020
+```
+
+1. 创建具备使用kubernetes pool中的test-image使用权限的用户在
+   > 容器运行环境中执行
+   
+   ```
+   # ceph auth get-or-create client.kubernetes.block mon 'profile rbd' osd 'profile rbd pool=kubernetes' mgr 'profile rbd pool=kubernetes'
+   ```
+
+2. 获得1中创建的用户密钥
+   > 容器运行环境中执行
+
+   ```
+   # ceph auth get client.kubernetes.block
+   exported keyring for client.kubernetes.block
+   [client.kubernetes.block]
+           key = AQCG82pf3Q0xARAAcbwPn7B0xrr25FKLtZ03Hw==
+           caps mgr = "profile rbd pool=kubernetes"
+           caps mon = "profile rbd"
+           caps osd = "profile rbd pool=kubernetes"
+   ```
+
+3. 在需要映射rbd块设备的客户端上配置ceph集群信息以及访问密钥信息
+   
+   集群配置信息`/etc/ceph/ceph.conf`
+
+   ```conf
+   # minimal ceph.conf for bc1f0b56-f252-11ea-8930-a9753a839177
+   [global]
+           fsid = bc1f0b56-f252-11ea-8930-a9753a839177
+           mon_host = [v2:10.10.197.200:3300/0,v1:10.10.197.200:6789/0] [v2:10.10.197.201:3300/0,v1:10.10.197.201:6789/0] [v2:10.10.197.202:3300/0,v1:10.10.197.202:6789/0]
+   ```
+
+   访问密钥信息`/etc/ceph/ceph.client.kubernetes.block.keyring`
+
+   ```
+   [client.kubernetes.block]
+        key = AQCG82pf3Q0xARAAcbwPn7B0xrr25FKLtZ03Hw==
+   ```
+
+4. ceph-common更新到15.2.5，执行映射命令
+   
+   ```
+   $ sudo rbd device map kubernetes/test-image --id kubernetes.block
+   /dev/rbd0
+   $ rbd device list
+   id  pool        namespace  image       snap  device
+   0   kubernetes             test-image  -     /dev/rbd0
+   ```
+
+5. 创建文件系统并挂载至挂载点
+6. 测试文件写入
+   
+   ```
+   $ cd /mnt/remotecephfs
+   $ echo "hello world" > hello
+   $ cat hello
+   hello world
+   ```
+
+7. 卸载块设备
+   
+   ```
+   $ sudo umount /mnt/remotecephfs
+   $ sudo rbd device unmap /dev/rbd/kubernetes/test-image
+   $ rbd device list
+   
+   ```
+
+#### 可能存在的bug
+
+1. 客户端旧内核中的rbd模块不支持新特性，测试时禁用特性
+   
+   > 在容器环境下运行
+
+   ```
+   rbd feature disable kubernetes/test-image exclusive-lock, object-map, fast-diff, deep-flatten
+   ```
+
+   上述禁用特性命令中的特性可进行替换
