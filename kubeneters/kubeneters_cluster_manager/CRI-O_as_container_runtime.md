@@ -976,11 +976,15 @@ kubernetes使用cni插件形式处理pods间网络问题，按照cni规定，在
 
 2. ARM64架构下，Kubernetes 1.18.6 与 CRI-O 1.18.3下，由于ARM64架构CPU缺乏1 2级缓存，因此kubelet运行时会报出错误 *failed to get cache information for node 0: open /sys/devices/system/cpu/cpu0/cache: no such file or directory* 基于目前观察并未有相关影响。
 
-3. AMD64架构下，CRI-O 1.18.3与kubelet 1.18.6，`kubelet`报出错误 *Failed to get system container stats for "/system.slice/kubelet.service": failed to get cgroup stats for "/system.slice/kubelet.service": failed to get cgroup stats for "/system.slice/kubelet.service": failed to get container info for "/system.slice/kubelet.service": unknown container "/system.slice/kubelet.service"*，该错误使用2的方式可暂时解决
+3. AMD64架构下，CRI-O 1.18.3与kubelet 1.18.6，`kubelet`报出错误 *Failed to get system container stats for "/system.slice/kubelet.service": failed to get cgroup stats for "/system.slice/kubelet.service": failed to get cgroup stats for "/system.slice/kubelet.service": failed to get container info for "/system.slice/kubelet.service": unknown container "/system.slice/kubelet.service"*，该错误使用1的方式可暂时解决
 
 ## Upgrade CRIO
 
 使用源码方式升级CRIO
+
+> **注：** 
+> 1. 对于ubuntu发行版而言release-1.19需要额外安装依赖 libbtrfs-dev，否则报错make binary causes fatal error: btrfs/ioctl.h: No such file or directory，相关信息参考此[链接](https://github.com/containers/skopeo/issues/663)
+> 2. CRIO 1.19需要golang 1.15才可编译
 
 1. 获取仓库源码更新
    
@@ -993,7 +997,7 @@ kubernetes使用cni插件形式处理pods间网络问题，按照cni规定，在
    
    ```
    make clean
-   make
+   make BUILDTAGS='seccomp apparmor'
    make install
    make install.systemd
    ```
