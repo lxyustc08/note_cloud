@@ -17,6 +17,16 @@
   - [Nested Types](#nested-types)
   - [Updating A Message Type](#updating-a-message-type)
   - [Extensions](#extensions)
+    - [Nested Extensions](#nested-extensions)
+    - [Chosing Extension Numbers](#chosing-extension-numbers)
+  - [Oneof](#oneof)
+    - [Using Oneof](#using-oneof)
+    - [Oneof Features](#oneof-features)
+    - [Backwards-compatibility issues](#backwards-compatibility-issues)
+  - [Maps](#maps)
+    - [Map Features](#map-features)
+    - [Backwards compatibility](#backwards-compatibility)
+  - [Packages](#packages)
 
 # Basic Ops
 
@@ -587,5 +597,225 @@ Any new fields that you add should be optional or repeated. This means that any 
 + Changing a field between a map<K, V> and the corresponding repeated message field is binary compatible (see Maps, below, for the message layout and other restrictions). However, the safety of the change is application-dependent: when deserializing and reserializing a message, clients using the repeated field definition will produce a semantically identical result; however, clients using the map field definition may reorder entries and drop entries with duplicate keys.
 
 ## Extensions
+
+protocol buffers支持通过extensions机制，将field标识数字作为保留数字供第三方扩展使用。如下例子所示
+
+```protobuf
+message Foo {
+  // ...
+  extensions 100 to 199;
+}
+```
+
+名称为`Foo`的message类型中保留[100, 199]作为fields的保留标识数字。其他开发者在其定义的`.proto`文件中，在[100, 199]间添加新的fields，如下例子所示
+
+```protobuf
+extend Foo {
+  optional int32 bar = 126;
+}
+```
+
+上述例子中在名称为Foo的Message类型中添加了新的标识数字为126的名称为bar的新field
+
+使用extensions后，消息类型的编码发生变化，原始的fields代码不变，针对通过extensions机制增添的fields，protocol buffers的编译器会生成针对extensions域的代码进行处理，包括但不限于`SetExtension()`, `HasExtension()`, `ClearExtension()`, `GetExtension()`, `MutableExtension()`, and `AddExtension()`，对于上述例子，以C++代码为例，要设置bar域为15，protocol buffers编译器生成如下代码
+
+```c++
+Foo foo;
+foo.SetExtension(bar, 15);
+```
+
+> 可将**除oneof以及maps外**的任何field类型作为extensions
+
+### Nested Extensions
+
+protocol buffers支持在message中嵌套申明extensions，如下例子所示
+
+```protobuf
+message Baz {
+  extend Foo {
+    optional int32 bar = 126;
+  }
+  ...
+}
+```
+
+此时C++对于扩展的bar域的访问代码生成如下
+
+```c++
+Foo foo;
+foo.SetExtension(Baz::bar, 15);
+```
+
+也即对于protocol buffer编译器而言，名称为bar的fields在Baz的域中定义，作为一个static member
+
+> This is a common source of confusion: Declaring an extend block nested inside a message type does not imply any relationship between the outer type and the extended type. In particular, the above example does not mean that Baz is any sort of subclass of Foo. All it means is that the symbol bar is declared inside the scope of Baz; it's simply a static member.
+
+一个更为常见的`extensions`的例子
+
+```protobuf
+message Baz {
+  extend Foo {
+    optional Baz foo_ext = 127;
+  }
+  ...
+}
+```
+
+也即定义名称为Baz的message类型，并将该新的message类型作为Foo类型的扩展，该例子的另一个写法
+
+```protobuf
+message Baz {
+  ...
+}
+
+// This can even be in a different file.
+extend Foo {
+  optional Baz foo_baz_ext = 127;
+}
+```
+
+### Chosing Extension Numbers
+
+多个开发者在对同一个message类型进行扩展时，需要确保多个开发者之间不使用同一个的fields标识数字，避免数据竞争。
+
+此外，设置保留的fields标识数字时，需避开19000~19999，这些protocol buffers的保留域标识数字。
+
+## Oneof
+
+Oneof是protocol buffer下类似于C的Union数据结构的机制。被配置为Oneof的field共享同一个oneof内存，且这些field均为`optional`属性，在同一时刻仅有一个field可被设置。protocol buffer编译器对于oneof将生成对应的代码以进行相应的处理，比如可通过`case()`或`WhichOneof()`检测哪个field进行了设置
+
+### Using Oneof
+
+一个oneof的例子
+
+```protobuf
+message SampleMessage {
+  oneof test_oneof {
+     string name = 4;
+     SubMessage sub_message = 9;
+  }
+}
+```
+
+对于oneof使用，即在`.proto`文件中使用`oneof`关键字，然后在`oneof`关键字后选择所使用的oneof名称，最后添加所需配置成oneof的field即可
+
+对于oneof而言，可以添加任何类型的fields，但不可使用`required`, `optional`, `repeated`关键字
+
+> In your generated code, oneof fields have the same getters and setters as regular optional methods. You also get a special method for checking which value (if any) in the oneof is set.
+
+### Oneof Features
+
++ Setting a oneof field will automatically clear all other members of the oneof. So if you set several oneof fields, only the last field you set will still have a value.
+  
+  ```cpp
+  SampleMessage message;
+  message.set_name("name");
+  CHECK(message.has_name());
+  message.mutable_sub_message();   // Will clear name field.
+  CHECK(!message.has_name());
+  ```
+
++ If the parser encounters multiple members of the same oneof on the wire, only the last member seen is used in the parsed message.
++ **Extensions are not supported for oneof.**
++ A oneof **cannot be** `repeated`.
++ Reflection APIs work for oneof fields.
++ If you set a oneof field to the default value (such as setting an int32 oneof field to 0), the "case" of that oneof field will be set, and the value will be serialized on the wire.
++ If you're using C++, make sure your code doesn't cause memory crashes. The following sample code will crash because `sub_message` was already deleted by calling the `set_name()` method.
+  
+  ```cpp
+  SampleMessage message;
+  SubMessage* sub_message = message.mutable_sub_message();
+  message.set_name("name");      // Will delete sub_message
+  sub_message->set_...            // Crashes here
+  ```
+
++ Again in C++, if you Swap() two messages with oneofs, each message will end up with the other’s oneof case: in the example below, msg1 will have a sub_message and msg2 will have a name.
+  
+  ```cpp
+  SampleMessage msg1;
+  msg1.set_name("name");
+  SampleMessage msg2;
+  msg2.mutable_sub_message();
+  msg1.swap(&msg2);
+  CHECK(msg1.has_sub_message());
+  CHECK(msg2.has_name());
+  ```
+
+### Backwards-compatibility issues
+
+当检查一个oneof时，若他的返回值为`None`/ `NOT_SET`，意味着此时oneof未被设置，或设置为另一个field。这两者之间无法区分。
+
+已确认的问题：
+
++ **Move optional fields into or out of a oneof:** You may lose some of your information (some fields will be cleared) after the message is serialized and parsed. However, you can safely move a single field into a new oneof and may be able to move multiple fields if it is known that only one is ever set.
++ **Delete a oneof field and add it back:** This may clear your currently set oneof field after the message is serialized and parsed.
++ **Split or merge oneof:** This has similar issues to moving regular `optional` fields.
+
+## Maps
+
+protocol buffers提供Map机制，使用Map通过下列语法进行
+
+```protobuf
+map<key_type, value_type> map_field = N;
+```
+
+`key_type`可以是任何integer或string类型，不可为enum。`value_type`可以为除map外的任何类型，一个例子
+
+```protobuf
+map<string, Project> projects = 3;
+```
+
+该例子定义了一个map类型的projects域，该map类型的`key_type`为string，`value_type`为Project
+
+### Map Features
+
++ **Extensions are not supported for maps**.
++ Maps **cannot be** `repeated`, `optional`, or `required`.
++ Wire format ordering and map iteration ordering of map values is undefined, so you cannot rely on your map items being in a particular order.
++ When generating text format for a `.proto`, maps are sorted by key. Numeric keys are sorted numerically.
++ When parsing from the wire or when merging, if there are duplicate map keys the last key seen is used. When parsing a map from text format, parsing may fail if there are duplicate keys.
+
+### Backwards compatibility
+
+第一个例子中的Map定义可等价为如下写法
+
+```protobuf
+message MapFieldEntry {
+  optional key_type key = 1;
+  optional value_type value = 2;
+}
+
+repeated MapFieldEntry map_field = N;
+```
+
+> **Any** protocol buffers implementation that supports maps **must** both produce and accept data that can be accepted by the above definition.
+
+## Packages
+
+在一个`.proto`文件中可选择可选的`package`以处理不同的`.proto`文件间message类型名冲突问题，如下面的例子：
+
+```protobuf
+package foo.bar;
+message Open { ... }
+```
+
+经过上面例子处理后，在新的`.proto`文件中可重新命名新的名称为Foo的message类型，如下所示
+
+```protobuf
+message Foo {
+  ...
+  required foo.bar.Open open = 1;
+  ...
+}
+```
+
+关于`package`与最终生成的代码之间的有如下关系
+
++ In `C++` the generated classes are wrapped inside a C++ namespace. For example, Open would be in the namespace `foo::bar`.
++ In `Java`, the package is used as the Java package, unless you explicitly provide a `option java_package` in your .proto file.
++ In `Python`, the package directive is ignored, since Python modules are organized according to their location in the file system.
++ In `Go`, the package directive is ignored, and the generated `.pb.go` file is in the package named after the corresponding `go_proto_library` rule.
+
+> Note that even when the package directive does not directly affect the generated code, for example in Python, it is still **strongly recommended** to specify the package for the .proto file, as otherwise it may lead to naming conflicts in descriptors and make the proto not portable for other languages.
 
 
