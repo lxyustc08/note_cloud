@@ -143,4 +143,4 @@ A gRPC channel provides a connection to a gRPC server on a specified host and po
 
 > 1. channel在client stub创建时即被使用
 > 2. channel具有状态`connected`以及`idle`
-> 3. gRPC对于channel的关闭操作处理取决于语言的具体实
+> 3. gRPC对于channel的关闭操作处理取决于语言的具体实现
