@@ -12,6 +12,7 @@
     - [DEPLOY OSDS](#deploy-osds)
     - [DEPLOY ADDTIONAL MGR](#deploy-addtional-mgr)
       - [USE CEPH DASHBOARD](#use-ceph-dashboard)
+    - [CEPH UPGRADE](#ceph-upgrade)
   - [CEPH ORCH USAGE](#ceph-orch-usage)
   - [TEST](#test)
     - [CEPH FS TEST](#ceph-fs-test)
@@ -379,6 +380,28 @@ ceph dashboard现在成为mgr的内置组件，在启动https时，默认情况�
 ```
 
 打开浏览器，输入当前mgr激活的地址，进入登陆页面后输入用户名、密码即可使用ceph dashboard
+
+### CEPH UPGRADE
+
+使用cephadm升级ceph较为简单，如下所示：
+
+1. 检查待升级的版本（在cephadm shell中运行），check命令后后检查版本的容器镜像，本处为本地镜像，从docker.io/ceph/ceph中拉取
+   
+   ```
+   # ceph orch upgrade check lxyustc.registrydomain.com:5000/ceph/ceph:v15.2.9
+   ```
+
+2. 运行升级命令（在cephadm shell中运行），--image参数允许指定升级用的镜像
+   
+   ```
+   #  ceph orch upgrade start --image lxyustc.registrydomain.com:5000/ceph/ceph:v15.2.9
+   ```
+
+3. 在2过程中，使用如下命令监控升级状态
+   
+   ```
+   # ceph -W cephadm
+   ```
 
 ## CEPH ORCH USAGE
 
