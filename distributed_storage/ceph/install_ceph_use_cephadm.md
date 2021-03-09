@@ -13,6 +13,7 @@
     - [DEPLOY ADDTIONAL MGR](#deploy-addtional-mgr)
       - [USE CEPH DASHBOARD](#use-ceph-dashboard)
     - [CEPH UPGRADE](#ceph-upgrade)
+      - [存在的问题](#存在的问题)
   - [CEPH ORCH USAGE](#ceph-orch-usage)
   - [TEST](#test)
     - [CEPH FS TEST](#ceph-fs-test)
@@ -402,6 +403,46 @@ ceph dashboard现在成为mgr的内置组件，在启动https时，默认情况�
    ```
    # ceph -W cephadm
    ```
+
+#### 存在的问题
+
+1. Podman版本兼容性问题，对于Podman 2.1.0版本而言，Ubuntu系统升级后将导致Podman创建Ceph相关的daemon是报错，目前被证明有效的方法为升级Podman至3.0.1版本即可解决，该问题将导致节点上无法创建ceph相关容器。
+   
+   ```
+   Error: sysctl "net.ipv4.ping_group_range" is not allowed in the hosts network namespace: OCI runtime error
+   ```
+
+2. cephadm日志存储路径为`/var/log/ceph/cephadm.log`，通过该日志，可查看cephadm相关行为，用于排错。
+
+3. 截至2021年3月9日，目前仍然存在的问题，使用3.0.1版本的Podman节点上，cephadm的的daemon之一node-exporter:v0.18.1服务并未启动成功，原因待排查。
+   
+   > 上述问题原因未知，但目前已有解决方案，解决方案步骤如下：
+   > 1. 修改node-export镜像，升级为最新版本1.1.2（在cephadm shell中运行）
+   > 
+   >   ```
+   >   ceph config set mgr mgr/cephadm/container_image_node_exporter lxyustc.registrydomain.com:5000/prom/node-exporter:v1.1.2
+   >   ```
+   >
+   > 2. 修改Prometheus镜像，升级为最新版本v2.25.0
+   >
+   >  ```
+   >  ceph config set mgr mgr/cephadm/container_image_prometheus lxyustc.registrydomain.com:5000/prom/prometheus:v2.25.0
+   >  ```
+   >
+   > 3. 重新部署Prometheus
+   >
+   > ```
+   > ceph orch redepoly promethes
+   > ```
+   >
+   > 4. 按照下述步骤对node-exporter进行处理
+   >
+   > ```
+   > ceph orch redeploy node-exporter //使新版本镜像配置生效
+   > ceph apply node-exporter 1 //缩容node-exporter
+   > ceph apply node-exporter '*' //扩容node-exporter到所有节点
+   > ```
+
 
 ## CEPH ORCH USAGE
 
