@@ -1,9 +1,10 @@
 # 升级Kubernetes集群
 
-- [升级Kubernetes集群](#%e5%8d%87%e7%ba%a7kubernetes%e9%9b%86%e7%be%a4)
-  - [升级前kubernetes集群配置](#%e5%8d%87%e7%ba%a7%e5%89%8dkubernetes%e9%9b%86%e7%be%a4%e9%85%8d%e7%bd%ae)
-  - [升级master](#%e5%8d%87%e7%ba%a7master)
-  - [升级work](#%e5%8d%87%e7%ba%a7work)
+- [升级Kubernetes集群](#升级kubernetes集群)
+  - [升级前kubernetes集群配置](#升级前kubernetes集群配置)
+  - [升级master](#升级master)
+  - [升级work](#升级work)
+  - [升级网络插件](#升级网络插件)
 
 
 ## 升级前kubernetes集群配置
@@ -322,3 +323,13 @@
 ![Alt Text](pictures/最终集群状态.png)
 
 ![Alt Text](pictures/最终集群pods状态.png)
+
+## 升级网络插件
+
+再从kubernetes v1.19升级到kubernetes v1.20.4后，出现节点无法访问apiserver集群内部IP情况，报错内容如下：
+
+```
+panic: Get "https://10.96.0.1:443/api/v1/namespaces/kubernetes-dashboard/secrets/kubernetes-dashboard-csrf": dial tcp 10.96.0.1:443: i/o timeout
+```
+
+原始的flannel版本为v0.12.0，该版本对于kubernetes v1.20.4不能较好适用。需升级为v0.13.1-rc2后解决相应的问题。
