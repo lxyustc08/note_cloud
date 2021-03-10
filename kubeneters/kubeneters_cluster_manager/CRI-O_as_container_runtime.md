@@ -236,6 +236,7 @@ rdma
 >     ```
 >     $ make & make install 
 >     ```
+> 3. 对于ubuntu而言btrfs需要安装的为libbtrfs-dev包
 
 #### Get CRI-O Source Code
 
@@ -262,6 +263,12 @@ CRI-O使用conmon监控容器相关运行状态，需要安装conmon，否则启
    make
    sudo make install
    ```
+
+   > 编译过程中可能报错“No package `glib-2.0` found”，Ubuntu下安装libglib2.0-dev包即可
+   > 
+   > ```
+   > apt install libglib2.0-dev
+   > ```
 
 #### Install CRI-O
 
@@ -341,7 +348,7 @@ CRI-O使用conmon监控容器相关运行状态，需要安装conmon，否则启
    install  -D -m 644 crictl.yaml /etc
    ```
 
-   + 镜像仓库配置，编辑/etc/containers/registries.conf，参照第一个进行相关配置即可，registries.insecure设置镜像仓库不考虑安全性，registries.block设置镜像仓库为禁止连接仓库
+   + 镜像仓库配置，编辑`/etc/containers/registries.conf`，参照第一个进行相关配置即可，registries.insecure设置镜像仓库不考虑安全性，registries.block设置镜像仓库为禁止连接仓库
     
    ```terminal
    [registries.search]
@@ -353,6 +360,25 @@ CRI-O使用conmon监控容器相关运行状态，需要安装conmon，否则启
    [registries.block]
    registries = []
    ```
+
+    > 此外需要对`/etc/containers/policy.json`进行配置，内容如下：
+    > 
+    > ```
+    > {
+    >   "default": [
+    >       {
+    >          "type": "insecureAcceptAnything"
+    >        }
+    >   ],
+    >  "transports":
+    >      {
+    >          "docker-daemon":
+    >              {
+    >                  "": [{"type":"insecureAcceptAnything"}]
+    >              }
+    >      }
+    >}
+   > ```
 
    + **(可选)** 配置cgroup manager, 添加/etc/crio/crio.conf.d/01-cgroup-manager.conf，下列配置将cgroup_manager修改为systemd
    
