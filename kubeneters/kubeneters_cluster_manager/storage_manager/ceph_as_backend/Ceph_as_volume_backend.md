@@ -7,6 +7,8 @@
       - [GENERATE CEPH-CSI CONFIGMAP](#generate-ceph-csi-configmap)
       - [GENERATE CEPH-CSI CEPHX SECRET](#generate-ceph-csi-cephx-secret)
       - [CINFUGURE CEPH-CSI PLUGINS](#cinfugure-ceph-csi-plugins)
+    - [Stage 3 Testing Ceph csi with Pod Using as file](#stage-3-testing-ceph-csi-with-pod-using-as-file)
+    - [Stage 4 Testing Ceph csi with Pod as raw block](#stage-4-testing-ceph-csi-with-pod-as-raw-block)
 
 # Ceph As Volume Backend
 
@@ -21,6 +23,27 @@ Kubernetes 1.13版本后通过ceph-csi使用`Ceph Block Device Images`作为存�
 ***
 
 ## Procedure
+
+本过程基于如下软件配置进行：
+
+|序号|软件名称|版本|
+|:---:|:---:|:---:|
+|1|ceph cluster|15.2.9|
+|2|kubernetes|1.20.4|
+|3|ceph csi|v3.2|
+
+本次过程使用到的镜像如下：
+
+|序号|镜像名称|版本|类型|
+|:---:|:---:|:---:|:---:|
+|1|csi-attacher|v3.0.2|sidecar镜像|
+|2|csi-provisioner|v2.0.4|sidecar镜像|
+|3|csi-snapshotter|v3.0.2|sidecar镜像|
+|4|csi-resizer|v1.0.1|sidecar镜像|
+|5|csi-node-driver-registrar|v2.0.1|sidecar镜像|
+|6|cephcsi|v3.2-canary|ceph csi镜像|
+
+> 本过程使用ceph的rbd作为kubernetes的后端存储
 
 ### Stage 1 CREATE A POOL
 
@@ -59,9 +82,9 @@ Kubernetes 1.13版本后通过ceph-csi使用`Ceph Block Device Images`作为存�
 1. 创建一个新的Ceph client用户，用于Kubernetes和Ceph-csi，运行下述命令
    
    ```
-   $ sudo ceph get-or-create client.kubernetes mon 'profile rbd' osd 'profile rbd pool=kubernetes' mgr 'profile rbd pool=kubernetes'
+   $ sudo ceph get-or-create client.kubernetes.block mon 'profile rbd' osd 'profile rbd pool=kubernetes' mgr 'profile rbd pool=kubernetes'
    [client.kubernetes]
-           key = AQC/gURf+/B1OBAABFutKMKlcXls8wVnRoIFUA==
+           key = AQCG82pf3Q0xARAAcbwPn7B0xrr25FKLtZ03Hw==
    ```
 
 #### GENERATE CEPH-CSI CONFIGMAP
@@ -71,12 +94,12 @@ Kubernetes 1.13版本后通过ceph-csi使用`Ceph Block Device Images`作为存�
 1. 获取ceph cluster的fsid以及各个monitor的地址，`ceph-csi`仅支持[legacy vi protocol](https://docs.ceph.com/docs/master/rados/configuration/msgr2/#address-formats)
    
    ```
-   $ sudo ceph mon dump
+   $ ceph mon dump
    dumped monmap epoch 3
    epoch 3
-   fsid 806762f5-9823-4f93-9afa-bd627436e0c8
-   last_changed 2020-08-21T20:05:20.726616+0800
-   created 2020-08-21T19:48:39.391492+0800
+   fsid bc1f0b56-f252-11ea-8930-a9753a839177
+   last_changed 2020-09-09T04:19:38.978756+0000
+   created 2020-09-09T04:13:02.686969+0000
    min_mon_release 15 (octopus)
    0: [v2:10.10.197.200:3300/0,v1:10.10.197.200:6789/0] mon.worker-amd64-gpuceph-node1
    1: [v2:10.10.197.201:3300/0,v1:10.10.197.201:6789/0] mon.worker-amd64-gpuceph-node2
@@ -93,7 +116,7 @@ Kubernetes 1.13版本后通过ceph-csi使用`Ceph Block Device Images`作为存�
         config.json: |-
             [
                 {
-                    "clusterID": "806762f5-9823-4f93-9afa-bd627436e0c8",
+                    "clusterID": "bc1f0b56-f252-11ea-8930-a9753a839177",
                     "monitors": [
                         "10.10.197.200:6789",
                         "10.10.197.201:6789",
@@ -163,8 +186,8 @@ ceph-csi需要使用cephx credentials以用于与Ceph cluster进行通信
         name: csi-rbd-secret
         namespace: default
    stringData:
-        userID: kubernetes
-        userKey: AQC/gURf+/B1OBAABFutKMKlcXls8wVnRoIFUA==
+        userID: kubernetes.block
+        userKey: AQCG82pf3Q0xARAAcbwPn7B0xrr25FKLtZ03Hw==
    ```
 
 2. 使用kubectl命令创建secret对象
@@ -204,7 +227,9 @@ ceph-csi需要使用cephx credentials以用于与Ceph cluster进行通信
    $ wget https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-rbdplugin.yaml
    ```
 
-3. 部署插件
+   上述yaml文件中的image均修改为本地镜像地址
+
+3. 部署插件（-n default参数可以不进行指定，在插件配置yaml文件中已经指定了namespace参数）
    
    ```
    $ kubectl apply -f csi-rbdplugin-provisioner.yaml -n default
@@ -214,3 +239,200 @@ ceph-csi需要使用cephx credentials以用于与Ceph cluster进行通信
    daemonset.apps/csi-rbdplugin created
    service/csi-metrics-rbdplugin created
    ```
+
+4. 查看ceph-csi部署pods运行状态
+   
+   ```
+   $ kubectl get pods
+   csi-rbd-demo-pod                             1/1     Running     0          27m
+   csi-rbdplugin-2wkl2                          3/3     Running     0          37m
+   csi-rbdplugin-4q2ck                          3/3     Running     0          37m
+   csi-rbdplugin-8qhrt                          3/3     Running     0          37m
+   csi-rbdplugin-lsngn                          3/3     Running     0          37m
+   csi-rbdplugin-provisioner-5b7c6664fd-5q2d5   7/7     Running     0          37m
+   csi-rbdplugin-provisioner-5b7c6664fd-glb6z   7/7     Running     0          37m
+   csi-rbdplugin-provisioner-5b7c6664fd-r66s9   7/7     Running     0          37m
+   ```
+
+   上述信息表明ceph-csi插件相关pods已经成功运行，但整体ceph-csi服务是否已经完全运行正常还需通过pvc是否可正常工作来进行验证。
+
+### Stage 3 Testing Ceph csi with Pod Using as file
+
+本部分通过创建使用pvc作为文件夹存储来测试ceph csi是否正常工作
+
+1. 创建storageClass，描述文件storageclass.yaml如下：
+   
+   ```yaml
+   ---
+   apiVersion: storage.k8s.io/v1
+   kind: StorageClass
+   metadata:
+      name: csi-rbd-sc
+   provisioner: rbd.csi.ceph.com
+   # If topology based provisioning is desired, delayed provisioning of
+   # PV is required and is enabled using the following attribute
+   # For further information read TODO<doc>
+   # volumeBindingMode: WaitForFirstConsumer
+   parameters:
+      clusterID: bc1f0b56-f252-11ea-8930-a9753a839177
+
+      pool: kubernetes
+
+      imageFeatures: layering
+
+      csi.storage.k8s.io/provisioner-secret-name: csi-rbd-secret
+      csi.storage.k8s.io/provisioner-secret-namespace: default
+      csi.storage.k8s.io/controller-expand-secret-name: csi-rbd-secret
+      csi.storage.k8s.io/controller-expand-secret-namespace: default
+      csi.storage.k8s.io/node-stage-secret-name: csi-rbd-secret
+      csi.storage.k8s.io/node-stage-secret-namespace: default
+
+      csi.storage.k8s.io/fstype: ext4
+
+   reclaimPolicy: Delete
+   allowVolumeExpansion: true
+   mountOptions:
+      - discard
+   ```
+
+2. 查看storageClass
+   
+   ```
+   kubectl get sc
+   NAME         PROVISIONER        RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+   csi-rbd-sc   rbd.csi.ceph.com   Delete          Immediate           true                   50m
+   ```
+
+3. 创建pvc，其描述文件pvc.yaml如下
+   
+   ```yaml
+   ---
+   apiVersion: v1
+   kind: PersistentVolumeClaim
+   metadata:
+     name: rbd-pvc
+   spec:
+     accessModes:
+       - ReadWriteOnce
+     resources:
+       requests:
+         storage: 1Gi
+     storageClassName: csi-rbd-sc
+   ```
+
+4. 查看pvc
+   
+   ```
+   kubectl get pvc
+   NAME      STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+   rbd-pvc   Bound    pvc-10765d6a-eefb-4108-a3a0-4a0574f4610c   1Gi        RWO            csi-rbd-sc     49m
+   ```
+
+   上述状态表明pvc创建成功
+
+5. 创建pod，其描述文件pod.yaml内容如下
+   
+   ```yaml
+   ---
+   apiVersion: v1
+   kind: Pod
+   metadata:
+     name: csi-rbd-demo-pod
+   spec:
+     containers:
+       - name: web-server
+         image: docker.io/library/nginx:latest
+         volumeMounts:
+           - name: mypvc
+             mountPath: /var/lib/www/html
+     volumes:
+       - name: mypvc
+         persistentVolumeClaim:
+           claimName: rbd-pvc
+           readOnly: false   
+   ```
+
+6. 查看pod状态
+   
+   ```
+   kubectl get pods
+   NAME                                         READY   STATUS      RESTARTS   AGE
+   csi-rbd-demo-pod                             1/1     Running     0          49m
+   ```
+
+   上述状态表明，ceph csi可正常运行
+
+### Stage 4 Testing Ceph csi with Pod as raw block
+
+本部分通过创建使用pvc作为raw block的pod测试ceph csi是否工作正常，本部分使用同Stage3的storageClass
+
+1. 创建pvc，其描述文件如下
+   
+   ```yaml
+   ---
+   apiVersion: v1
+   kind: PersistentVolumeClaim
+   metadata:
+     name: raw-block-pvc
+   spec:
+     accessModes:
+       - ReadWriteOnce
+     volumeMode: Block
+     resources:
+       requests:
+         storage: 1Gi
+     storageClassName: csi-rbd-sc
+   ```
+
+2. 查看pvc
+   
+   ```
+   kubectl get pvc
+   NAME            STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+   raw-block-pvc   Bound    pvc-2f83a013-7345-47e3-9cc2-5105c58e2316   1Gi        RWO            csi-rbd-sc     4s
+   ```
+
+   上述输出说明pvc创建成功
+
+3. 创建使用上述pvc的pod，其描述文件如下：
+   
+   ```yaml
+   ---
+   apiVersion: v1
+   kind: Pod
+   metadata:
+     name: pod-with-raw-block-volume
+   spec:
+     containers:
+       - name: centos
+         image: registry.centos.org/centos:latest
+         command: ["/bin/sleep", "infinity"]
+         volumeDevices:
+           - name: data
+             devicePath: /dev/xvda
+     volumes:
+       - name: data
+         persistentVolumeClaim:
+           claimName: raw-block-pvc
+   ```
+
+4. 查看pod状态
+   
+   ```
+   kubectl get pod
+   ......
+   pod-with-raw-block-volume                    1/1     Running     0          8m19s
+   ```
+
+5. 查看pod中raw block的状态
+   
+   ```
+   kubectl exec pod-with-raw-block-volume -- fdisk -l /dev/xvda
+   Disk /dev/xvda: 1 GiB, 1073741824 bytes, 2097152 sectors
+   Units: sectors of 1 * 512 = 512 bytes
+   Sector size (logical/physical): 512 bytes / 512 bytes
+   I/O size (minimum/optimal): 65536 bytes / 65536 bytes
+   ```
+
+   上述输出表明，raw block已经成功挂在至pod中
+
