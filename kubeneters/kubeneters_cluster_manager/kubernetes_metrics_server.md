@@ -1,3 +1,10 @@
+- [Kubernetes Metric Server](#kubernetes-metric-server)
+  - [Introduce kubernetes metric server](#introduce-kubernetes-metric-server)
+  - [Metrics server use cases](#metrics-server-use-cases)
+  - [Metrics server requirements](#metrics-server-requirements)
+  - [Metrics server installation](#metrics-server-installation)
+  - [Metrics Server的扩展性](#metrics-server的扩展性)
+
 # Kubernetes Metric Server
 
 ## Introduce kubernetes metric server
@@ -81,3 +88,22 @@ Metrics Server使用Kubernetes配置文件描述部署，配置文件地址[如�
 可能存在的问题：
 
 1. liveness probe失败，报错 `Get "https://10.88.6.3:4443/readyz"`失败，可能存在原因为网络插件与Kubernetes版本不兼容，需要升级网络插件。
+
+## Metrics Server的扩展性
+
+> 注：本部分数据来源于Metrics Server的Github页面，其占用的资源与节点的规模如下所示：
+
+对于100个节点的集群而言，实现容器资源metrics的收集，Metrics server需要的资源如下：
+
++ CPU资源：100m（m为CPU指标的衡量单位，物理意义为所占CPU千分之一，此处100m即为100个千分之一的CPU，也即10%）
++ 内存资源：300MiB
+
+默认配置的Metrics Server的资源上限如下：
+
+|Quantity|Namespace threshold|Cluster threshold|
+|:---:|:---:|:---:|
+|#Nodes|n/a|100|
+|#Pods|7000|7000|
+|#Deployments + HPA|100|100|
+
+
