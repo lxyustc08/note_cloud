@@ -12,6 +12,8 @@
 
 # Ceph As Volume Backend
 
+> 注：本处采用的provisioner为ceph开发的ceph csi而非kubernetes内置的rbd provisioner，[可实现raw block volume support](../../../kubernetes_concept/kubernetes_storage/volume.md)
+
 ## Kubernetes/ Ceph Technology Stack
 
 ![Alt Text](../../pictures/Kubernetes%20use%20Ceph%20Technology%20Stack.png)
@@ -434,5 +436,5 @@ ceph-csi需要使用cephx credentials以用于与Ceph cluster进行通信
    I/O size (minimum/optimal): 65536 bytes / 65536 bytes
    ```
 
-   上述输出表明，raw block已经成功挂在至pod中
+   上述输出表明，raw block已经成功挂载至pod中
 
