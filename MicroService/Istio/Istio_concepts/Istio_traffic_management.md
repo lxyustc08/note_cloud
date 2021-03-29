@@ -309,7 +309,9 @@ spec:
       version: v3
 ```
 
-每个子集通过一个或多个label进行定义。这些lables在Kubenretes的服务部署中作为Kubernetes服务的`metadata`域中的值对不同的版本进行标识。
+每个子集基于一个或多个label进行定义。这些lables即Kubernetes中的键值对，这些键值对附加在Kubernetes的资源如Pods中。Istio的Destination rules通过Kubernetes deployments的labels对子集进行定义，以区分不同的版本。
+
+> Each subset is defined based on one or more labels, which in Kubernetes are key/value pairs that are attached to objects such as Pods. These labels are applied in the Kubernetes service’s deployment as metadata to identify different versions.
 
 上述例子中，除了对subsets进行定义外，destination rule定义了默认的流量规则，即出现在subsets上的trafficPolicy，该默认规则可被子集进行覆盖。
 
