@@ -443,6 +443,9 @@ ceph dashboard现在成为mgr的内置组件，在启动https时，默认情况�
    > ceph apply node-exporter '*' //扩容node-exporter到所有节点
    > ```
 
+4. ubuntu系统包升级过程中ceph镜像tag丢失，导致相关服务（mon service）启动失败，此时cluster的mon列表中mon daemon启动失败的Node消失。
+   > 解决办法，升级ubuntu包后检查镜像tag是否正常。若出现tag失效，则先添加tag，然后删除异常daemon即可
+
 
 ## CEPH ORCH USAGE
 
