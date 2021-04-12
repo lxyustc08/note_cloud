@@ -189,7 +189,7 @@ Kubernetes 1.7后，StatefulSet允许通过域`.spec.podManagementPolicy`放宽�
 
 #### Paraller Pod Management
 
-`Parallel` Pod management通知StatefulSet controller以并行方式同时启动或终止所有的pods，无需考虑pods之间启动终止顺序。该选项仅影响伸缩行为，升级行为并不影响。
+`Parallel` Pod management通知StatefulSet controller以并行方式同时启动或终止所有的pods，无需考虑pods之间启动终止顺序。该选项仅影响伸缩行为，**升级行为并不影响**。
 
 ## Update Strategies
 
