@@ -11,6 +11,7 @@
       - [No Controller Plugins](#no-controller-plugins)
   - [Volume Lifecycle](#volume-lifecycle)
   - [Container Storage Interface](#container-storage-interface-1)
+    - [RPC Interface](#rpc-interface)
 
 # Container Storage Interface
 
@@ -270,4 +271,10 @@ The above diagrams illustrate a general expectation with respect to how a CO MAY
 
 **Describes the interface between COs and Plugins.**
 
+### RPC Interface
 
+A CO interacts with an Plugin through RPCs. Each SP MUST provide:
+
++ **Node Plugin:** A gRPC endpoint serving CSI RPCs that MUST be run on the Node whereupon an SP-provisioned volume will be published.
++ **Controller Plugin:** A gRPC endpoint serving CSI RPCs that MAY be run anywhere.
++ In some circumstances a single gRPC endpoint MAY serve all CSI RPCs

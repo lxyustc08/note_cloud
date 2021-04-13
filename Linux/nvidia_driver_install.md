@@ -57,3 +57,5 @@ Linux下Nvidia驱动有多种方式
    ```
    $ sudo bash NVIDIA-Linux-x86_64-450.66.run
    ```
+
+> **注意：ubuntu下内核更新需重新安装驱动，否则影响nvidia容器相关功能**
