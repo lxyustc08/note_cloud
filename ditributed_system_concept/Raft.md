@@ -6,6 +6,10 @@
   - [The Raft consensus algorithm](#the-raft-consensus-algorithm)
     - [Raft basics](#raft-basics)
     - [Leader election](#leader-election)
+      - [1. Wins Election](#1-wins-election)
+      - [2. Another server wins election](#2-another-server-wins-election)
+      - [3. Votes split](#3-votes-split)
+    - [Log replication](#log-replication)
 
 # Raft
 
@@ -105,7 +109,7 @@ Raft将一致性问题分解为3个相对独立的子问题：
 
 Raft集群由若干服务器组成。通常情况下，5服务器是集群典型数量，此时，最多允许2服务器失效。
 
-在任何时间点，每个服务器处于3种状态之一：
+**在任何时间点，每个服务器处于3种状态之一**：
 
 + leader
 + follower
@@ -150,7 +154,7 @@ Raft服务器间使用RPC进行远程调用，对于Raft一致性算法而言，
 
 servers启动时，均以followers角色启动，当服务器处于可正常接收来自leader或candidates的RPC消息的时间内，其总保持follows状态。
 
-leaders**定期向followers发送heartbeats（本质上是不含log entries的AppendEntries RPC）以维持其统治**。对于followers而言，若其在一段时间（这段时间被称为election timeout）内没有接收到该heartbeats，该followers将认为当前状态下没有一个合适的leader需要选举新的leader。
+leaders**定期向followers发送heartbeats（本质上是不含log entries的AppendEntries RPC）以维持其统治**。对于followers而言，若其在一段时间（这段时间被称为*election timeout*）内没有接收到该heartbeats，该followers将认为当前状态下没有一个合适的leader需要选举新的leader。
 
 要开始一段新的选举，follower增加其`current term number`并将自身状态转换为candidate state。之后向自己投票，并发送RequestVote请求至集群中的其它服务器中，处于candidate状态的服务器器保持candidate状态直至下面三件事情成立：
 
@@ -176,5 +180,64 @@ stateDiagram-v2
   S1 --> S4: votes split
   S4 --> S1: start new election & term number ++
 ```
+
+#### 1. Wins Election
+
+candidate赢得选举的条件是：该candidate在同一个term中获得集群中的大多数服务器的投票。（majority of servers），通过majority of servers，保证在任意特定的term内，最多只有一个服务器赢得选票。
+
+集群中的服务器在进行投票时，**在同一个term中最多能向一个candidate进行投票**，（投票规则之一，基于first-come-first-served原则）
+
+一旦某一candidate赢得选举，该candidate变为leader，并发送heartbeat给到其他所有的服务器，建立其统治，并阻止新的选举。
+
+#### 2. Another server wins election
+
+在等待投票的过程中，candidate可能从其他的服务器处获取声明其为leader的AppendEntries RPC，此时根据声明leader的term与自身term之间的关系存在两种情况：
+
++ 声明leader的term >= 自身的term
+  + candidate承认声明的leader的合法性，并转换为follower
++ 声明leader的term < 自身的term
+  + 拒绝承认声明leader的合法性，拒绝该AppendEntries RPC，保持状态为candidate
+
+#### 3. Votes split
+
+此时candidate并未赢得选举也未输掉选举，此种情况是由于同一时间过多的follower状态转变为candidate，导致没有任何一个candidate得票满足多数原则。此种情况发生时，每个candidate超时，并重新开始新的选举（term++ & issues RequestVote RPC）。
+
+为防止split votes无限循环，Raft协议使用随机化election timeouts（randomized election timeouts）来确保split votes是少见情况，并确保即使出现split votes也能迅速解决，具体算法如下（[实现这两点的原则是同一个term中server最多能向1个candidate投票](#wins-election)）：
+
++ 在第一次选举时，在一个区间（interval）内随机化election timeouts，这种做法可以在大多数情况下确保最多有一个服务器timeout，此时该服务器赢得选举，并在其他的服务器timeout前发送heartbeat，建立起统治
++ 对于已发生的split votes时，每个candidate在重新开始新的election前的等待时间（election timeout）随机化，这样不同的candidate开始新的election的时间不一样，较早启动新的election的candidate有较大概率达到多数条件赢得选举，可以减少新选举周期中split vote情况的出现。
+
+### Log replication
+
+一旦产生leader，该leader便开始为client服务，响应client的请求。每个client请求包含一个replicated state machine执行的命令。client, leader以及follower的活动图如下所示。
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant C as client
+  participant L as leader
+  participant F as followers
+  C->>L: issues requests
+  
+  activate L
+  
+  loop until all followers store all log entries
+    L->>F: issues AppendEntries RPCs
+  end
+
+  opt entry safely replicated
+    L-->>C: return result of requests
+  end
+  deactivate L 
+```
+
+流程如下：
+
+1. leader appends client command to its log as a new entry
+2. issues AppendEntries RPCs in parallel to each of the other servers to replicate the entry
+3. when the entry has been safely replicated, the leader applies the entry to its state machine
+   + leader retires AppendEntries RPCs indefinitrly until all followers eventually store all log entries
+   + leader retires AppendEntries even after it has responded to the client 
+4. returns the result of that execution to the client
 
 
