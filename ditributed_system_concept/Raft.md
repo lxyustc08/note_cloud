@@ -10,6 +10,7 @@
       - [2. Another server wins election](#2-another-server-wins-election)
       - [3. Votes split](#3-votes-split)
     - [Log replication](#log-replication)
+      - [Structure of logs](#structure-of-logs)
 
 # Raft
 
@@ -240,4 +241,26 @@ sequenceDiagram
    + leader retires AppendEntries even after it has responded to the client 
 4. returns the result of that execution to the client
 
+#### Structure of logs
 
+Logs组织形式如图所示。
+
+![Alt Text](distributed_system_pictures/raft_replicated_logs_structure.png)
+
+图中的log entry中的数字为该entry被添加到entry logs时的term number。entry logs上方的数字为entry在entry logs中的index，用于标序entry在entry logs中的位置。
+
+由前所述，由leader决定log entry可被安全应用到state machine中，当log entry被安全应用到state machine时，*该log entry被称为`committed log entry`*。
+
+Raft保证所有的*committed log entry*是**持久化的（durable）**，并被所有的出于可用状态的state machines执行。
+
+当某一log entry被复制到集群中的大部分服务器上时，该log entry转换为*committed log entry*，该commit操作同样将leader前序log entries commit，包括前一个leader创建的entries。leader负责跟踪其所知的已committed的最大index，该index将包含在他向其他节点发送的AppendEntries RPC中（包括heartbeat），这样其他节点可知该index对应的日志条目已被提交
+
+后文将讨论在leader变换后commit操作的执行方式，并证明此种commit是安全的。
+
+Raft的log机制通过下述两点维护不同servers间的logs之间的一致性（Log Matching Property）：
+
++ 如果在不同的日志中两个条目有着相同的index及term，则其存储的命令是相同的；
+  + **基于一个事实：leader在给定的term中的给定的日志索引位置上最多创建一条日志条目**
++ 如果在不同的日志中两个条目有着相同的index及term，则它们之前的所有条目都是完全一样的。
+  + 基于AppendEntries提供的简单一致性检查策略。当leader发送AppendEntries时，该AppendEntries将包含紧邻新追加log entry的前一个log entry的index及term；
+  + 对于follower而言，若根据其接收到的AppendEntries中的index和term未找到对应的log entry，其拒绝该AppendEntries；
